@@ -9,6 +9,5 @@ class DataframeModel:
             "Qtd": [10, 5, 8, 15, 6, 4]
         }
         df = pd.DataFrame(data)
-        # Aplicando uma regra de negócio simples (filtrar por valor mínimo)
         df_filtered = df[df["Valor"] >= min_valor]
         return df_filtered
