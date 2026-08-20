@@ -8,8 +8,18 @@ class AppController:
         self.view = DashboardView()
 
     def run(self):
-        st.sidebar.header("Painel de Controle")
-        min_valor = st.sidebar.slider("Valor Mínimo (R$)", 0, 3000, 0, 100)
+        # Configurações da Barra Lateral (Filtros do Dashboard)
+        st.sidebar.header("🔍 Filtros Globais")
         
-        df = self.model.get_data(min_valor=min_valor)
-        self.view.render(df)
+        # Opções de categorias baseadas nos dados
+        categorias = ["Todas", "Tecnologia", "Marketing", "Vendas"]
+        categoria_escolhida = st.sidebar.selectbox("Filtrar por Categoria", categorias)
+        
+        st.sidebar.markdown("---")
+        st.sidebar.info("Dashboard atualizado via arquitetura MVC.")
+
+        # Busca os dados filtrados no Model
+        df_filtrado = self.model.get_data(categoria_selecionada=categoria_escolhida)
+        
+        # Renderiza a View passando os dados tratados
+        self.view.render(df_filtrado)
