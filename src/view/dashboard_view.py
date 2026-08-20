@@ -1,107 +1,115 @@
 import streamlit as st
+import importlib.util
+
+# Verifica a biblioteca com segurança
+if importlib.util.find_spec("streamlit_option_menu") is None:
+    st.error("A biblioteca 'streamlit-option-menu' não está instalada. Rode: pip install streamlit-option-menu")
+else:
+    from streamlit_option_menu import option_menu
 
 class DashboardView:
     def render(self, model):
-        # 1. Injeção de CSS aprimorado para estilizar botões, inputs e rádios
+        # 1. CSS Global do App e Cartões
         st.markdown("""
             <style>
-                /* Fundo global escuro com gradiente */
                 .stApp {
                     background: linear-gradient(135deg, #070913 0%, #0b0f19 50%, #110c24 100%);
                     color: #ffffff;
                 }
                 
-                /* Barra lateral estilizada */
+                /* Estilo do fundo da barra lateral */
                 [data-testid="stSidebar"] {
                     background: linear-gradient(180deg, #070913 0%, #0d061a 100%);
                     border-right: 1px solid rgba(168, 85, 247, 0.2);
+                    padding-top: 0.5rem;
                 }
 
-                /* Cards de Métricas */
                 .metric-card {
                     background: linear-gradient(145deg, #121826 0%, #1a102f 100%);
                     border: 1px solid rgba(168, 85, 247, 0.3);
                     padding: 20px;
                     border-radius: 14px;
                     box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15);
-                    transition: all 0.3s ease;
                 }
-                .metric-card:hover {
-                    border-color: rgba(168, 85, 247, 0.7);
-                    box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
-                    transform: translateY(-2px);
-                }
-
-                /* BOTÕES MODERNOS (Substitui o visual padrão feio) */
-                .stButton > button {
-                    background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%) !important;
-                    color: white !important;
-                    border: none !important;
-                    border-radius: 10px !important;
-                    font-weight: 600 !important;
-                    padding: 0.6rem 1.2rem !important;
-                    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4) !important;
-                    transition: all 0.3s ease !important;
-                }
-                .stButton > button:hover {
-                    background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%) !important;
-                    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6) !important;
-                    transform: scale(1.02);
-                }
-
-                /* RÁDIOS E SELETORES EM FORMATO DE PÍLULA/BOTÃO */
-                .stRadio > div {
-                    background-color: #121826;
-                    padding: 6px;
-                    border-radius: 12px;
-                    border: 1px solid rgba(168, 85, 247, 0.2);
-                }
-                .stRadio label {
-                    color: #d1d5db !important;
-                    font-weight: 500;
-                }
-
-                /* Caixas de Texto (Inputs do chat) estilizadas */
-                .stTextInput input {
+                
+                .stTextInput input, .stSelectbox select {
                     background-color: #121826 !important;
                     color: #ffffff !important;
                     border: 1px solid rgba(168, 85, 247, 0.3) !important;
                     border-radius: 10px !important;
                 }
-                .stTextInput input:focus {
-                    border-color: #8b5cf6 !important;
-                    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3) !important;
-                }
-
-                /* Alertas e avisos modernos */
                 .stAlert {
                     background-color: #121826 !important;
                     border: 1px solid rgba(168, 85, 247, 0.3) !important;
                     border-radius: 10px !important;
                     color: #ffffff !important;
                 }
-
-                h1, h2, h3 {
-                    color: #ffffff !important;
-                    font-family: 'Inter', sans-serif;
-                }
+                h1, h2, h3 { color: #ffffff !important; }
             </style>
         """, unsafe_allow_html=True)
 
-        # 2. Menu lateral (Sidebar)
-        st.sidebar.markdown("### 💠 **VITTA VISION**")
-        st.sidebar.caption("Inteligência que transforma a saúde")
-        st.sidebar.markdown("---")
+        # =========================================================
+        # ESTRUTURA DA SIDEBAR COM BOTÕES MODERNOS E GRADIENTE
+        # =========================================================
+        with st.sidebar:
+            # Logo / Topo da Sidebar
+            st.markdown("""
+                <div style="display: flex; align-items: center; gap: 12px; padding: 10px 5px 20px 5px; border-bottom: 1px solid rgba(168, 85, 247, 0.2); margin-bottom: 15px;">
+                    <div style="background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);">💠</div>
+                    <div>
+                        <h2 style="margin: 0; font-size: 17px; font-weight: 700; color: #ffffff; letter-spacing: 0.5px;">VITTA VISION</h2>
+                        <p style="margin: 0; font-size: 11px; color: #9ca3af;">Inteligência em Saúde</p>
+                    </div>
+                </div>
+                <p style="color: #9ca3af; font-size: 11px; font-weight: 600; letter-spacing: 1px; margin-bottom: 8px; padding-left: 5px;">MENU PRINCIPAL</p>
+            """, unsafe_allow_html=True)
 
-        menu = st.sidebar.radio(
-            "Menu Principal",
-            ["Dashboard", "Internações", "Hospitais", "Leitos", "Indicadores", "Mapas", "Relatórios", "Assistente IA", "Configurações"]
-        )
+            # MENU COM BOTÕES ESTILIZADOS
+            menu = option_menu(
+                menu_title=None,
+                options=["Dashboard", "Internações", "Hospitais", "Leitos", "Indicadores", "Mapas", "Relatórios", "Assistente IA", "Configurações"],
+                icons=['speedometer2', 'hospital', 'building', 'bed', 'graph-up-arrow', 'map', 'file-text', 'robot', 'gear'],
+                menu_icon=None,
+                default_index=0,
+                styles={
+                    "container": {"padding": "0px", "background-color": "transparent"},
+                    "icon": {"color": "#a855f7", "font-size": "16px"}, 
+                    "nav-link": {
+                        "font-size": "14px",
+                        "text-align": "left",
+                        "margin": "4px 0px",
+                        "--hover-color": "rgba(139, 92, 246, 0.15)",
+                        "padding": "10px 14px",
+                        "border-radius": "10px",
+                        "background-color": "#121826",
+                        "color": "#9ca3af",
+                        "border": "1px solid rgba(168, 85, 247, 0.15)"
+                    },
+                    "nav-link-selected": {
+                        "background": "linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)",
+                        "color": "#ffffff",
+                        "font-weight": "600",
+                        "border": "1px solid rgba(255, 255, 255, 0.2)",
+                        "box-shadow": "0 4px 15px rgba(139, 92, 246, 0.4)"
+                    },
+                }
+            )
 
-        st.sidebar.markdown("---")
-        st.sidebar.markdown("👤 **Gestor de Saúde**\n*Secretaria Municipal*")
+            # PERFIL DO USUÁRIO NO RODAPÉ DA SIDEBAR
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""
+                <div style="background: rgba(18, 24, 38, 0.7); border: 1px solid rgba(168, 85, 247, 0.3); padding: 12px 15px; border-radius: 12px; display: flex; align-items: center; gap: 10px;">
+                    <div style="background-color: #8b5cf6; color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;">JS</div>
+                    <div>
+                        <h4 style="margin: 0; font-size: 13px; color: #ffffff;">Gestor de Saúde</h4>
+                        <p style="margin: 0; font-size: 11px; color: #9ca3af;">Secretaria Municipal</p>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
-        # 3. Roteamento de telas
+        # =========================================================
+        # ROTEAMENTO DE TELAS
+        # =========================================================
         if menu == "Assistente IA" or menu == "Dashboard":
             self.render_assistente_ia(model)
         elif menu == "Hospitais":
@@ -119,9 +127,8 @@ class DashboardView:
         with col_date:
             st.selectbox("Período", ["01/01/2024 - 30/04/2026"], label_visibility="collapsed")
         with col_btn:
-            st.button("✨ Novo chat")
+            st.button("✨ Novo chat", key="btn_novo_chat")
 
-        # Cards de KPIs
         kpis = model.get_kpis_ia()
         c1, c2, c3, c4 = st.columns(4)
         
