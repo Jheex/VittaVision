@@ -2,59 +2,85 @@ import streamlit as st
 
 class DashboardView:
     def render(self, model):
-        # 1. Injeção de CSS Customizado com Gradientes Roxo/Azul e Modo Escuro Profundo
+        # 1. Injeção de CSS aprimorado para estilizar botões, inputs e rádios
         st.markdown("""
             <style>
-                /* Fundo global da aplicação */
+                /* Fundo global escuro com gradiente */
                 .stApp {
                     background: linear-gradient(135deg, #070913 0%, #0b0f19 50%, #110c24 100%);
                     color: #ffffff;
                 }
                 
-                /* Barra lateral com gradiente sutil e borda */
+                /* Barra lateral estilizada */
                 [data-testid="stSidebar"] {
                     background: linear-gradient(180deg, #070913 0%, #0d061a 100%);
                     border-right: 1px solid rgba(168, 85, 247, 0.2);
                 }
 
-                /* Cards de Métricas com borda e efeito de brilho roxo/azul */
+                /* Cards de Métricas */
                 .metric-card {
                     background: linear-gradient(145deg, #121826 0%, #1a102f 100%);
                     border: 1px solid rgba(168, 85, 247, 0.3);
                     padding: 20px;
                     border-radius: 14px;
                     box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15);
-                    transition: transform 0.2s ease;
+                    transition: all 0.3s ease;
                 }
                 .metric-card:hover {
-                    border-color: rgba(168, 85, 247, 0.6);
-                    box-shadow: 0 8px 30px rgba(139, 92, 246, 0.3);
+                    border-color: rgba(168, 85, 247, 0.7);
+                    box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+                    transform: translateY(-2px);
                 }
 
-                /* Botões com Gradiente Roxo/Azul */
+                /* BOTÕES MODERNOS (Substitui o visual padrão feio) */
                 .stButton > button {
-                    background: linear-gradient(90deg, #8b5cf6 0%, #3b82f6 100%);
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    font-weight: 600;
-                    padding: 0.5rem 1rem;
-                    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+                    background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%) !important;
+                    color: white !important;
+                    border: none !important;
+                    border-radius: 10px !important;
+                    font-weight: 600 !important;
+                    padding: 0.6rem 1.2rem !important;
+                    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4) !important;
+                    transition: all 0.3s ease !important;
                 }
                 .stButton > button:hover {
-                    background: linear-gradient(90deg, #7c3aed, #2563eb);
-                    color: white;
-                    border: none;
+                    background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%) !important;
+                    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6) !important;
+                    transform: scale(1.02);
                 }
 
-                /* Caixas de Alerta e Info com tom escuro e borda roxa */
+                /* RÁDIOS E SELETORES EM FORMATO DE PÍLULA/BOTÃO */
+                .stRadio > div {
+                    background-color: #121826;
+                    padding: 6px;
+                    border-radius: 12px;
+                    border: 1px solid rgba(168, 85, 247, 0.2);
+                }
+                .stRadio label {
+                    color: #d1d5db !important;
+                    font-weight: 500;
+                }
+
+                /* Caixas de Texto (Inputs do chat) estilizadas */
+                .stTextInput input {
+                    background-color: #121826 !important;
+                    color: #ffffff !important;
+                    border: 1px solid rgba(168, 85, 247, 0.3) !important;
+                    border-radius: 10px !important;
+                }
+                .stTextInput input:focus {
+                    border-color: #8b5cf6 !important;
+                    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3) !important;
+                }
+
+                /* Alertas e avisos modernos */
                 .stAlert {
                     background-color: #121826 !important;
                     border: 1px solid rgba(168, 85, 247, 0.3) !important;
+                    border-radius: 10px !important;
                     color: #ffffff !important;
                 }
 
-                /* Ajuste de textos e títulos */
                 h1, h2, h3 {
                     color: #ffffff !important;
                     font-family: 'Inter', sans-serif;
@@ -86,7 +112,6 @@ class DashboardView:
             self.render_generico(menu)
 
     def render_assistente_ia(self, model):
-        # Cabeçalho da página
         col_title, col_date, col_btn = st.columns([3, 1, 1])
         with col_title:
             st.title("✨ Assistente IA")
@@ -96,7 +121,7 @@ class DashboardView:
         with col_btn:
             st.button("✨ Novo chat")
 
-        # Cards de KPIs com o novo design gradiente
+        # Cards de KPIs
         kpis = model.get_kpis_ia()
         c1, c2, c3, c4 = st.columns(4)
         
@@ -138,7 +163,6 @@ class DashboardView:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Seção central: Gráficos e Chat da IA lado a lado
         col_main, col_chat = st.columns([2, 1])
 
         with col_main:
@@ -148,7 +172,6 @@ class DashboardView:
             df_int = model.get_internacoes_data()
             st.line_chart(df_int.set_index("Data"), color="#a855f7")
 
-            # Cards inferiores de destaque
             mc1, mc2, mc3 = st.columns(3)
             with mc1:
                 st.info("🚨 **Alerta de ocupação**\n15 regiões acima de 90%.")
