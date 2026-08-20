@@ -7,6 +7,4 @@ class AppController:
         self.view = DashboardView()
 
     def run(self):
-        # O Controller delega a renderização principal para a View, 
-        # que gerencia o menu lateral e a troca de telas (Dashboard, IA, Hospitais, Mapa).
-        self.view.render(None, self.model)
+        self.view.render(self.model)
