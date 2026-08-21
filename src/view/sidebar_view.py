@@ -1,5 +1,7 @@
 import streamlit as st
 import importlib.util
+from PIL import Image
+import os
 
 if importlib.util.find_spec("streamlit_option_menu") is not None:
     from streamlit_option_menu import option_menu
@@ -7,54 +9,89 @@ if importlib.util.find_spec("streamlit_option_menu") is not None:
 class SidebarView:
     def render(self):
         with st.sidebar:
+            # CSS para Sidebar com gradiente imersivo e sem blocos travados
             st.markdown("""
-                <div style="display: flex; align-items: center; gap: 12px; padding: 10px 5px 20px 5px; border-bottom: 1px solid rgba(168, 85, 247, 0.2); margin-bottom: 15px;">
-                    <div style="background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);">💠</div>
-                    <div>
-                        <h2 style="margin: 0; font-size: 17px; font-weight: 700; color: #ffffff; letter-spacing: 0.5px;">VITTA VISION</h2>
-                        <p style="margin: 0; font-size: 11px; color: #9ca3af;">Inteligência em Saúde</p>
-                    </div>
-                </div>
-                <p style="color: #9ca3af; font-size: 11px; font-weight: 600; letter-spacing: 1px; margin-bottom: 8px; padding-left: 5px;">MENU PRINCIPAL</p>
+                <style>
+                    [data-testid="stSidebar"] {
+                        height: 100vh;
+                        display: flex;
+                        flex-direction: column;
+                        overflow-y: auto;
+                        background: linear-gradient(180deg, #090d16 0%, #17102e 50%, #1e1b4b 100%) !important;
+                        border-right: 1px solid rgba(139, 92, 246, 0.15);
+                    }
+                    /* Remove qualquer padding lateral excessivo do container padrão do Streamlit */
+                    [data-testid="stSidebarUserContent"] {
+                        padding-left: 10px;
+                        padding-right: 10px;
+                    }
+                </style>
             """, unsafe_allow_html=True)
 
+            # Logo Centralizada
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            logo_path = os.path.abspath(os.path.join(current_dir, "..", "..", "Src", "assets", "logo.png"))
+            
+            if not os.path.exists(logo_path):
+                logo_path = "Src/assets/logo.png"
+
+            if os.path.exists(logo_path):
+                image = Image.open(logo_path)
+                st.image(image, use_container_width=True)
+            else:
+                st.markdown("""
+                    <div style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); padding: 15px; border-radius: 12px; text-align: center; color: white; font-weight: bold; font-size: 18px; box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);">
+                        VITTA VISION
+                    </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
+
+            # Menu Principal com container transparente e visual minimalista
             menu_selecionado = option_menu(
                 menu_title=None,
                 options=["Dashboard", "Internações", "Hospitais", "Leitos", "Indicadores", "Mapas", "Relatórios", "Assistente IA", "Configurações"],
-                icons=['speedometer2', 'hospital', 'building', 'bed', 'graph-up-arrow', 'map', 'file-text', 'robot', 'gear'],
+                icons=['house-door', 'hospital', 'buildings', 'clipboard-plus', 'graph-up', 'map', 'file-earmark-text', 'robot', 'gear'],
                 menu_icon=None,
                 default_index=0,
-                key="menu_principal",  # <--- CHAVE ÚNICA PARA EVITAR O ERRO DO STREAMLIT
+                key="menu_principal",
                 styles={
+                    # Container transparente para sumir com o bloco retangular
                     "container": {"padding": "0px", "background-color": "transparent"},
-                    "icon": {"color": "#a855f7", "font-size": "16px"}, 
+                    "icon": {"color": "#a78bfa", "font-size": "17px"},
                     "nav-link": {
                         "font-size": "14px",
-                        "text-align": "left",
                         "margin": "4px 0px",
-                        "--hover-color": "rgba(139, 92, 246, 0.15)",
-                        "padding": "10px 14px",
-                        "border-radius": "10px",
                         "background-color": "transparent",
-                        "color": "#9ca3af"
+                        "--hover-color": "rgba(139, 92, 246, 0.1)",
+                        "padding": "11px 14px",
+                        "border-radius": "10px",
+                        "color": "#94a3b8",
+                        "transition": "all 0.25s ease"
                     },
                     "nav-link-selected": {
-                        "background": "linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)",
-                        "color": "#ffffff",
+                        "background": "linear-gradient(90deg, rgba(139, 92, 246, 0.25) 0%, rgba(139, 92, 246, 0.05) 100%)",
+                        "color": "#f8fafc",
+                        "border-left": "3px solid #8b5cf6",
+                        "border-radius": "0 10px 10px 0",
                         "font-weight": "600",
-                        "border": "1px solid rgba(255, 255, 255, 0.2)",
-                        "box-shadow": "0 4px 15px rgba(139, 92, 246, 0.4)"
+                        "box-shadow": "inset 0 1px 0 rgba(255, 255, 255, 0.05)"
                     },
                 }
             )
 
-            st.markdown("<br>", unsafe_allow_html=True)
+            # Espaçador Flexível: Empurra o perfil para o rodapé
+            st.markdown('<div style="flex-grow: 1;"></div>', unsafe_allow_html=True)
+
+            # Card de Usuário (Rodapé)
             st.markdown("""
-                <div style="background: rgba(18, 24, 38, 0.7); border: 1px solid rgba(168, 85, 247, 0.3); padding: 12px 15px; border-radius: 12px; display: flex; align-items: center; gap: 10px;">
-                    <div style="background-color: #8b5cf6; color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;">JS</div>
-                    <div>
-                        <h4 style="margin: 0; font-size: 13px; color: #ffffff;">Gestor de Saúde</h4>
-                        <p style="margin: 0; font-size: 11px; color: #9ca3af;">Secretaria Municipal</p>
+                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04); padding: 12px 14px; border-radius: 14px; margin: 15px 0;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); color: white; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);">JS</div>
+                        <div>
+                            <div style="color: #f8fafc; font-size: 13px; font-weight: 600;">Gestor de Saúde</div>
+                            <div style="color: #64748b; font-size: 11px;">Secretaria Municipal</div>
+                        </div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
