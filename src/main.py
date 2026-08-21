@@ -4,6 +4,9 @@ from view.sidebar_view import SidebarView
 from view.dashboard_view import DashboardView
 from view.assistente_ia_view import AssistenteIAView
 from view.hospitais_view import HospitaisView
+from view.internacoes_view import InternacoesView
+from view.leitos_view import LeitosView
+from view.mapas_view import MapasView
 from view.generico_view import GenericoView
 
 st.set_page_config(page_title="Vitta Vision", layout="wide", initial_sidebar_state="expanded")
@@ -71,6 +74,12 @@ class MainController:
             AssistenteIAView().render(self.model)
         elif pagina_atual == "Hospitais":
             HospitaisView().render(self.model)
+        elif pagina_atual == "Internações":
+            InternacoesView().render(self.model)
+        elif pagina_atual == "Leitos":
+            LeitosView().render(self.model)
+        elif pagina_atual == "Mapas":
+            MapasView().render()
         else:
             GenericoView().render(pagina_atual)
 
