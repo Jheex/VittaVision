@@ -1,29 +1,16 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 class DashboardView:
     def render(self, model):
-        # =========================================================
+      # =========================================================
         # CABEÇALHO DO DASHBOARD
         # =========================================================
-        col_title, col_date, col_filter = st.columns([3, 1, 1])
-        with col_title:
-            st.markdown("""
-                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff;">Bem-vindo(a) ao <span style="color: #3b82f6;">VITTA VISION</span></h1>
-                <p style="margin: 4px 0 0 0; font-size: 13px; color: #9ca3af;">Painel inteligente de monitoramento da capacidade hospitalar e demanda por internações no SUS.</p>
-            """, unsafe_allow_html=True)
-        with col_date:
-            st.markdown("""
-                <div style="background: rgba(18, 24, 38, 0.7); border: 1px solid rgba(168, 85, 247, 0.3); padding: 8px 12px; border-radius: 10px; text-align: center; font-size: 12px; color: #e2e8f0;">
-                    📅 01/01/2024 - 30/04/2026
-                </div>
-            """, unsafe_allow_html=True)
-        with col_filter:
-            st.markdown("""
-                <div style="background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%); padding: 8px 12px; border-radius: 10px; text-align: center; font-size: 12px; font-weight: 600; color: #ffffff; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);">
-                    🎯 Filtros
-                </div>
-            """, unsafe_allow_html=True)
+        st.markdown("""
+            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff;">Bem-vindo(a) ao <span style="color: #3b82f6;">VITTA VISION</span></h1>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: #9ca3af;">Painel inteligente de monitoramento da capacidade hospitalar e demanda por internações no SUS.</p>
+        """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -109,14 +96,24 @@ class DashboardView:
             """, unsafe_allow_html=True)
             
             df_int = model.get_internacoes_data()
-            st.line_chart(df_int.set_index("Data"), color="#a855f7", height=265)
+            fig_line = px.area(df_int, x="Data", y=df_int.columns[1], color_discrete_sequence=["#a855f7"])
+            fig_line.update_traces(line_width=2.5, fillcolor='rgba(168, 85, 247, 0.15)')
+            fig_line.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#ffffff", size=11),
+                margin=dict(l=10, r=10, t=10, b=10),
+                xaxis=dict(showgrid=False, color="#ffffff"),
+                yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.08)', color="#ffffff", title=None),
+                height=265
+            )
+            st.plotly_chart(fig_line, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col_mapa:
             st.markdown("""
                 <div class="metric-card">
                     <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #ffffff;">Mapa de pressão assistencial</h3>
-                </div>
             """, unsafe_allow_html=True)
             
             df_mapa = pd.DataFrame({
@@ -124,6 +121,7 @@ class DashboardView:
                 "lon": [-46.6333, -43.1729, -43.9345, -60.0158, -38.5014]
             })
             st.map(df_mapa, zoom=3, height=265)
+            st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -134,15 +132,55 @@ class DashboardView:
 
         with col_top:
             st.markdown("""
-                <div class="metric-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 235px;">
+                <div class="metric-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 250px;">
                     <div>
-                        <h3 style="margin: 0; font-size: 14px; color: #ffffff; margin-bottom: 12px;">Top 5 municípios por internações</h3>
-                        <div style="font-size: 12px; color: #9ca3af;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>1. São Paulo - SP</span><strong style="color:#fff;">234.567</strong></div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>2. Rio de Janeiro - RJ</span><strong style="color:#fff;">156.892</strong></div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>3. Belo Horizonte - MG</span><strong style="color:#fff;">98.765</strong></div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>4. Fortaleza - CE</span><strong style="color:#fff;">87.543</strong></div>
-                            <div style="display: flex; justify-content: space-between;"><span>5. Salvador - BA</span><strong style="color:#fff;">76.321</strong></div>
+                        <h3 style="margin: 0 0 16px 0; font-size: 14px; color: #ffffff;">Top 5 municípios por internações</h3>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
+                                    <span style="color: #e2e8f0;">1. São Paulo - SP</span>
+                                    <strong style="color: #ffffff;">234.567</strong>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.05); border-radius: 4px; height: 6px; width: 100%;">
+                                    <div style="background: #3b82f6; width: 100%; height: 100%; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
+                                    <span style="color: #e2e8f0;">2. Rio de Janeiro - RJ</span>
+                                    <strong style="color: #ffffff;">156.892</strong>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.05); border-radius: 4px; height: 6px; width: 100%;">
+                                    <div style="background: #3b82f6; width: 67%; height: 100%; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
+                                    <span style="color: #e2e8f0;">3. Belo Horizonte - MG</span>
+                                    <strong style="color: #ffffff;">98.765</strong>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.05); border-radius: 4px; height: 6px; width: 100%;">
+                                    <div style="background: #3b82f6; width: 42%; height: 100%; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
+                                    <span style="color: #e2e8f0;">4. Fortaleza - CE</span>
+                                    <strong style="color: #ffffff;">87.543</strong>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.05); border-radius: 4px; height: 6px; width: 100%;">
+                                    <div style="background: #3b82f6; width: 37%; height: 100%; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
+                                    <span style="color: #e2e8f0;">5. Salvador - BA</span>
+                                    <strong style="color: #ffffff;">76.321</strong>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.05); border-radius: 4px; height: 6px; width: 100%;">
+                                    <div style="background: #3b82f6; width: 32%; height: 100%; border-radius: 4px;"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -150,15 +188,15 @@ class DashboardView:
 
         with col_taxa:
             st.markdown("""
-                <div class="metric-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 235px;">
+                <div class="metric-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 250px;">
                     <div>
                         <h3 style="margin: 0; font-size: 14px; color: #ffffff;">Taxa de ocupação de leitos (média)</h3>
-                        <div style="text-align: center; margin: 22px 0;">
-                            <span style="font-size: 38px; font-weight: bold; color: #3b82f6;">78%</span>
-                            <p style="font-size: 11px; color: #9ca3af; margin: 2px 0 0 0;">Taxa média geral</p>
+                        <div style="text-align: center; margin-top: 35px;">
+                            <span style="font-size: 48px; font-weight: 800; color: #3b82f6;">78%</span>
+                            <p style="font-size: 12px; color: #9ca3af; margin: 4px 0 0 0;">Taxa média geral</p>
                         </div>
                     </div>
-                    <div style="background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); padding: 8px; border-radius: 8px; font-size: 11px; color: #f43f5e; text-align: center;">
+                    <div style="background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); padding: 10px; border-radius: 8px; font-size: 11px; color: #f43f5e; text-align: center;">
                         🚨 15 regiões em alerta crítico (> 90%)
                     </div>
                 </div>
@@ -166,16 +204,16 @@ class DashboardView:
 
         with col_ai:
             st.markdown("""
-                <div class="metric-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 235px;">
+                <div class="metric-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 250px;">
                     <div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                             <h3 style="margin: 0; font-size: 14px; color: #ffffff;">✨ Assistente IA</h3>
-                            <span style="font-size: 10px; background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 4px;">BETA</span>
+                            <span style="font-size: 10px; background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 600;">BETA</span>
                         </div>
-                        <div style="background: rgba(139, 92, 246, 0.1); padding: 10px; border-radius: 8px; font-size: 11px; color: #e2e8f0; margin-bottom: 10px;">
+                        <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); padding: 12px; border-radius: 8px; font-size: 11px; color: #e2e8f0; line-height: 1.5;">
                             🤖 <strong>Vitta IA:</strong> A região Sudeste registrou o maior número de internações, representando 39,2% do total nacional.
                         </div>
                     </div>
-                    <input type="text" placeholder="Faça uma pergunta..." style="width: 100%; background: #070913; border: 1px solid rgba(168, 85, 247, 0.3); padding: 8px 10px; border-radius: 6px; color: white; font-size: 11px;" disabled>
+                    <input type="text" placeholder="Faça uma pergunta..." style="width: 100%; background: #070913; border: 1px solid rgba(168, 85, 247, 0.3); padding: 10px; border-radius: 6px; color: white; font-size: 11px; outline: none;" disabled>
                 </div>
             """, unsafe_allow_html=True)
