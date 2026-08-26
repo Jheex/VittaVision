@@ -1,5 +1,6 @@
 import json
 import os
+from PIL import Image
 import oracledb
 import pandas as pd
 import streamlit as st
@@ -136,27 +137,38 @@ class AssistenteIAView:
     # Início da estrutura principal
     st.markdown('<div class="vitta-layout">', unsafe_allow_html=True)
 
-    # 1. HEADER INTERNO DA IA
-    st.markdown(
-        """
+    # 1. HEADER INTERNO DA IA (Apontando para a pasta estática do Streamlit)
+    header_html = """
             <div class="vitta-header">
-                <div style="font-size: 20px; margin-bottom: 0px;">🩺</div>
+                <div style="margin-bottom: 4px; display: flex; justify-content: center;">
+                    <img src="/app/static/VittaAI.png" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" onerror="this.style.display='none'">
+                </div>
                 <h2 style="color: #f8fafc; font-weight: 800; margin: 0; letter-spacing: 1px; font-size: 14px;">
                     VITTA<span style="color: #c084fc;"> AI</span>
                 </h2>
                 <p style="color: #94a3b8; font-size: 9px; margin: 0px 0 0 0;">Assistente neural inteligente integrado ao Oracle Select AI.</p>
             </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """
+    st.markdown(header_html, unsafe_allow_html=True)
 
     # 2. BODY (Mensagens do Chat)
     st.markdown('<div class="vitta-body">', unsafe_allow_html=True)
+
+    # Carrega a imagem com segurança para o avatar da IA usando o caminho da pasta static
+    avatar_ia = "👤"
+    caminho_static = os.path.join("static", "VittaAI.png")
+    try:
+      if os.path.exists(caminho_static):
+        avatar_ia = Image.open(caminho_static)
+    except Exception:
+      pass
+
     for message in st.session_state.messages:
-      with st.chat_message(
-          message["role"],
-          avatar="🤖" if message["role"] == "assistant" else "👤",
-      ):
+      avatar_path = (
+          avatar_ia if message["role"] == "assistant" else "👤"
+      )
+
+      with st.chat_message(message["role"], avatar=avatar_path):
         conteudo = message["content"]
 
         if isinstance(conteudo, (list, dict)):
