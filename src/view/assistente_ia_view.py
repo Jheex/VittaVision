@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 from PIL import Image
@@ -36,12 +37,12 @@ class AssistenteIAView:
 
                 .vitta-header {
                     text-align: center;
-                    padding-top: 40px;
-                    padding-bottom: 4px;
+                    padding-top: 30px;
+                    padding-bottom: 8px;
                     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
                     background-color: inherit;
                     z-index: 10;
-                    margin-bottom: 8px;
+                    margin-bottom: 12px;
                 }
 
                 .vitta-body {
@@ -137,16 +138,22 @@ class AssistenteIAView:
     # Início da estrutura principal
     st.markdown('<div class="vitta-layout">', unsafe_allow_html=True)
 
-    # 1. HEADER INTERNO DA IA (Apontando para a pasta estática do Streamlit)
-    header_html = """
+    # 1. HEADER INTERNO DA IA (Logo e título maiores)
+    caminho_assets = os.path.join("assets", "VittaAI.png")
+    img_base64 = ""
+    if os.path.exists(caminho_assets):
+      with open(caminho_assets, "rb") as f:
+        img_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+    header_html = f"""
             <div class="vitta-header">
-                <div style="margin-bottom: 4px; display: flex; justify-content: center;">
-                    <img src="/app/static/VittaAI.png" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" onerror="this.style.display='none'">
+                <div style="margin-bottom: 6px; display: flex; justify-content: center;">
+                    <img src="data:image/png;base64,{img_base64}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;" onerror="this.style.display='none'">
                 </div>
-                <h2 style="color: #f8fafc; font-weight: 800; margin: 0; letter-spacing: 1px; font-size: 14px;">
+                <h2 style="color: #f8fafc; font-weight: 800; margin: 0; letter-spacing: 1.5px; font-size: 20px;">
                     VITTA<span style="color: #c084fc;"> AI</span>
                 </h2>
-                <p style="color: #94a3b8; font-size: 9px; margin: 0px 0 0 0;">Assistente neural inteligente integrado ao Oracle Select AI.</p>
+                <p style="color: #94a3b8; font-size: 11px; margin: 2px 0 0 0;">Assistente neural inteligente integrado ao Oracle Select AI.</p>
             </div>
         """
     st.markdown(header_html, unsafe_allow_html=True)
@@ -154,12 +161,10 @@ class AssistenteIAView:
     # 2. BODY (Mensagens do Chat)
     st.markdown('<div class="vitta-body">', unsafe_allow_html=True)
 
-    # Carrega a imagem com segurança para o avatar da IA usando o caminho da pasta static
     avatar_ia = "👤"
-    caminho_static = os.path.join("static", "VittaAI.png")
     try:
-      if os.path.exists(caminho_static):
-        avatar_ia = Image.open(caminho_static)
+      if os.path.exists(caminho_assets):
+        avatar_ia = Image.open(caminho_assets)
     except Exception:
       pass
 
