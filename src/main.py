@@ -11,7 +11,8 @@ from view.mapas_view import MapasView
 from view.relatorios_view import RelatoriosView
 
 st.set_page_config(
-    page_title="Vitta Vision", layout="wide", initial_sidebar_state="expanded"
+    page_title="Vitta Vision", 
+    layout="wide"
 )
 
 # Força o estado da sidebar no session_state para evitar que fique presa no cache do navegador
