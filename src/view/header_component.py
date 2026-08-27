@@ -133,7 +133,7 @@ class HeaderComponent:
         }
 
         /* =====================================================
-            BOTÃO DE VITTA AI (Destaque)
+            BOTÃO DE VITTA AI (Destaque Roxo/Azul)
             ===================================================== */
 
         .header-ai {
@@ -157,6 +157,49 @@ class HeaderComponent:
             color: #ffffff !important;
             font-weight: 600 !important;
             font-size: 14px !important;
+        }
+
+        /* =====================================================
+            BOTÃO DE LOGIN / ADMIN (Destaque Ciano à Direita)
+            ===================================================== */
+
+        .header-login {
+            display: flex !important;
+            align-items: center !important;
+            width: 100% !important;
+        }
+
+        .header-login button {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2)) !important;
+            border: 1px solid rgba(56, 189, 248, 0.4) !important;
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2) !important;
+        }
+
+        .header-login button:hover {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.35), rgba(59, 130, 246, 0.35)) !important;
+            border: 1px solid rgba(56, 189, 248, 0.7) !important;
+            box-shadow: 0 6px 16px rgba(6, 182, 212, 0.35) !important;
+        }
+
+        .header-login button p {
+            color: #38bdf8 !important;
+            font-weight: 600 !important;
+            font-size: 14px !important;
+        }
+
+        /* =====================================================
+            BOTÃO DE ADMIN LOGADO (Destaque Verde Suave)
+            ===================================================== */
+
+        .header-admin-online button {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25)) !important;
+            border: 1px solid rgba(52, 211, 153, 0.5) !important;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2) !important;
+        }
+
+        .header-admin-online button p {
+            color: #34d399 !important;
+            font-weight: 600 !important;
         }
 
         /* =====================================================
@@ -186,23 +229,21 @@ class HeaderComponent:
 
             cols = st.columns(
                 [
-                    2.8,  # Logo + Texto Gradiente
-                    0.45,  # Dashboard
-                    0.38,  # Mapas
+                    2.4,  # Logo + Texto Gradiente
+                    0.42,  # Dashboard
                     0.38,  # Leitos
                     0.48,  # Internações
                     0.42,  # Hospitais
                     0.48,  # Relatórios
-                    0.55,  # Vitta AI
+                    0.50,  # Vitta AI
+                    0.48,  # Login / Admin (Direita)
                 ],
                 gap="small",
             )
 
             col0, col1, col2, col3, col4, col5, col6, col7 = cols
 
-            # =====================================================
-            # RENDERIZAR LOGO E TEXTO COM ALINHAMENTO PERFEITO
-            # =====================================================
+            # LOGO E TEXTO
             with col0:
                 current_dir = os.path.dirname(os.path.abspath(__file__))
                 possible_paths = [
@@ -251,10 +292,7 @@ class HeaderComponent:
                         unsafe_allow_html=True,
                     )
 
-            # =====================================================
             # FUNÇÃO DE NAVEGAÇÃO
-            # =====================================================
-
             def navegar(nome, chave, coluna):
                 with coluna:
                     is_ativo = pagina_atual == nome
@@ -274,16 +312,14 @@ class HeaderComponent:
                         st.query_params["page"] = nome
                         st.rerun()
 
-            # Chamadas dos menus na ordem exata solicitada
             navegar("Dashboard", "header_dashboard", col1)
-            navegar("Mapas", "header_mapas", col2)
-            navegar("Leitos", "header_leitos", col3)
-            navegar("Internações", "header_internacoes", col4)
-            navegar("Hospitais", "header_hospitais", col5)
-            navegar("Relatórios", "header_relatorios", col6)
+            navegar("Leitos", "header_leitos", col2)
+            navegar("Internações", "header_internacoes", col3)
+            navegar("Hospitais", "header_hospitais", col4)
+            navegar("Relatórios", "header_relatorios", col5)
 
-            # VITTA AI (Assistente IA)
-            with col7:
+            # VITTA AI
+            with col6:
                 st.markdown('<div class="header-ai">', unsafe_allow_html=True)
                 clicou_ai = st.button(
                     "Vitta AI", key="header_assistente_ia", use_container_width=True
@@ -292,4 +328,30 @@ class HeaderComponent:
 
                 if clicou_ai:
                     st.query_params["page"] = "Assistente IA"
+                    st.rerun()
+
+            # BOTÃO DE LOGIN / ADMIN DINÂMICO
+            with col7:
+                is_admin_logado = st.session_state.get("admin_logado", False)
+                is_ativo_admin = pagina_atual == "Admin"
+
+                if is_ativo_admin:
+                    wrapper_class_admin = "header-active"
+                elif is_admin_logado:
+                    wrapper_class_admin = "header-admin-online"
+                else:
+                    wrapper_class_admin = "header-login"
+
+                st.markdown(
+                    f'<div class="{wrapper_class_admin}">', unsafe_allow_html=True
+                )
+                
+                texto_botao = "👤 Painel Admin" if is_admin_logado else "🔐 Login"
+                clicou_admin = st.button(
+                    texto_botao, key="header_admin_login", use_container_width=True
+                )
+                st.markdown("</div>", unsafe_allow_html=True)
+
+                if clicou_admin:
+                    st.query_params["page"] = "Admin"
                     st.rerun()
