@@ -7,80 +7,137 @@ class PerfilView:
     def render(self, db):
 
         # =========================================================
-        # BOTÃO VOLTAR
-        # =========================================================
-
-        if st.button("← Voltar ao Menu Principal", key="voltar_perfil"):
-            st.session_state.admin_aba_ativa = "Menu Principal"
-            st.rerun()
-
-        # =========================================================
-        # ESTILOS DA PÁGINA
+        # ESTILOS
         # =========================================================
 
         st.markdown(
             """
             <style>
 
-            /* Container principal */
-            .perfil-container {
-                max-width: 1050px;
-                margin: 20px auto 0 auto;
+            /* =====================================================
+               CONTAINER
+            ===================================================== */
+
+            .perfil-page {
+                max-width: 1180px;
+                margin: 0 auto;
+                padding: 10px 0 40px 0;
             }
 
-            /* Cabeçalho */
+            /* =====================================================
+               CABEÇALHO
+            ===================================================== */
+
             .perfil-header {
-                margin-bottom: 28px;
-            }
-
-            .perfil-title {
-                font-size: 30px;
-                font-weight: 700;
-                color: #ffffff;
-                margin-bottom: 6px;
-            }
-
-            .perfil-subtitle {
-                font-size: 14px;
-                color: #94a3b8;
-            }
-
-            /* Card principal */
-            .perfil-card {
-                background:
-                    linear-gradient(
-                        145deg,
-                        rgba(18, 24, 38, 0.96),
-                        rgba(27, 17, 48, 0.96)
-                    );
-
-                border: 1px solid rgba(168, 85, 247, 0.25);
-                border-radius: 20px;
-
-                padding: 30px;
-
-                box-shadow:
-                    0 15px 45px rgba(0, 0, 0, 0.35);
-
+                margin-top: 8px;
                 margin-bottom: 22px;
             }
 
-            /* Perfil superior */
-            .perfil-topo {
+            .perfil-title-row {
                 display: flex;
                 align-items: center;
-                gap: 22px;
-                padding-bottom: 25px;
-                border-bottom: 1px solid rgba(255,255,255,0.08);
-                margin-bottom: 25px;
+                gap: 14px;
+                margin-bottom: 7px;
             }
 
-            /* Avatar */
-            .perfil-avatar {
-                width: 76px;
-                height: 76px;
+            .perfil-title-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 12px;
+
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                background:
+                    linear-gradient(
+                        135deg,
+                        rgba(124, 58, 237, 0.20),
+                        rgba(37, 99, 235, 0.20)
+                    );
+
+                border: 1px solid rgba(168, 85, 247, 0.28);
+
+                color: #c4b5fd;
+                font-size: 21px;
+
+                box-shadow:
+                    0 6px 20px rgba(124, 58, 237, 0.12);
+            }
+
+            .perfil-title {
+                color: #ffffff;
+                font-size: 30px;
+                font-weight: 750;
+                letter-spacing: -0.5px;
+                line-height: 1.1;
+            }
+
+            .perfil-subtitle {
+                color: #94a3b8;
+                font-size: 13px;
+                margin-left: 56px;
+            }
+
+            /* =====================================================
+               CARD DE IDENTIDADE
+            ===================================================== */
+
+            .identity-card {
+                position: relative;
+                overflow: hidden;
+
+                background:
+                    linear-gradient(
+                        135deg,
+                        rgba(18, 24, 38, 0.98),
+                        rgba(27, 17, 48, 0.98)
+                    );
+
+                border: 1px solid rgba(168, 85, 247, 0.24);
+                border-radius: 18px;
+
+                padding: 24px 26px;
+
+                margin-bottom: 20px;
+
+                box-shadow:
+                    0 12px 35px rgba(0, 0, 0, 0.28);
+            }
+
+            .identity-card::before {
+                content: "";
+                position: absolute;
+
+                width: 220px;
+                height: 220px;
+
+                right: -90px;
+                top: -120px;
+
+                background: rgba(124, 58, 237, 0.12);
 
                 border-radius: 50%;
+
+                filter: blur(8px);
+            }
+
+            .identity-content {
+                position: relative;
+
+                display: flex;
+                align-items: center;
+
+                gap: 18px;
+            }
+
+            .perfil-avatar {
+                flex-shrink: 0;
+
+                width: 68px;
+                height: 68px;
+
+                border-radius: 18px;
 
                 display: flex;
                 align-items: center;
@@ -93,114 +150,347 @@ class PerfilView:
                         #2563eb
                     );
 
-                color: white;
+                color: #ffffff;
 
-                font-size: 30px;
-                font-weight: 700;
+                font-size: 27px;
+                font-weight: 750;
 
                 box-shadow:
-                    0 8px 25px rgba(124, 58, 237, 0.35);
+                    0 8px 25px rgba(124, 58, 237, 0.28);
+            }
+
+            .identity-info {
+                flex: 1;
+                min-width: 0;
             }
 
             .perfil-nome {
-                font-size: 25px;
-                font-weight: 700;
                 color: #ffffff;
-                margin-bottom: 4px;
+                font-size: 21px;
+                font-weight: 700;
+                margin-bottom: 3px;
             }
 
             .perfil-funcao {
-                font-size: 14px;
                 color: #a78bfa;
+                font-size: 13px;
+                margin-bottom: 5px;
             }
 
-            /* Status */
-            .status-badge {
-                display: inline-flex;
+            .perfil-email {
+                color: #64748b;
+                font-size: 12px;
+            }
+
+            /* =====================================================
+               STATUS
+            ===================================================== */
+
+            .status-area {
+                display: flex;
                 align-items: center;
-                gap: 7px;
+                gap: 9px;
 
-                background: rgba(34, 197, 94, 0.10);
-                border: 1px solid rgba(34, 197, 94, 0.25);
+                padding: 9px 13px;
 
+                background: rgba(34, 197, 94, 0.07);
+
+                border: 1px solid rgba(34, 197, 94, 0.20);
+
+                border-radius: 10px;
+
+                white-space: nowrap;
+            }
+
+            .status-dot {
+                width: 8px;
+                height: 8px;
+
+                border-radius: 50%;
+
+                background: #22c55e;
+
+                box-shadow:
+                    0 0 9px rgba(34, 197, 94, 0.75);
+            }
+
+            .status-text {
                 color: #4ade80;
-
-                padding: 6px 12px;
-                border-radius: 20px;
-
                 font-size: 12px;
                 font-weight: 600;
             }
 
-            .status-dot {
-                width: 7px;
-                height: 7px;
-                border-radius: 50%;
-                background: #22c55e;
-                box-shadow: 0 0 8px rgba(34,197,94,0.8);
+            /* =====================================================
+               CARDS INFERIORES
+            ===================================================== */
+
+            .perfil-card {
+                height: 100%;
+
+                background:
+                    linear-gradient(
+                        145deg,
+                        rgba(18, 24, 38, 0.96),
+                        rgba(24, 18, 42, 0.96)
+                    );
+
+                border: 1px solid rgba(255,255,255,0.07);
+
+                border-radius: 16px;
+
+                padding: 23px;
+
+                box-shadow:
+                    0 10px 30px rgba(0,0,0,0.22);
             }
 
-            /* Informações */
-            .info-label {
-                font-size: 11px;
-                text-transform: uppercase;
-                letter-spacing: 0.7px;
-                color: #64748b;
-                margin-bottom: 5px;
+            .card-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+
+                padding-bottom: 17px;
+
+                border-bottom:
+                    1px solid rgba(255,255,255,0.07);
+
+                margin-bottom: 18px;
             }
 
-            .info-value {
-                font-size: 15px;
-                color: #e2e8f0;
-                font-weight: 500;
-            }
-
-            .info-box {
-                background: rgba(255,255,255,0.025);
-                border: 1px solid rgba(255,255,255,0.06);
-                border-radius: 12px;
-                padding: 15px 17px;
-                margin-bottom: 12px;
-            }
-
-            /* Segurança */
-            .security-title {
-                font-size: 20px;
-                font-weight: 650;
-                color: #ffffff;
-                margin-bottom: 5px;
-            }
-
-            .security-description {
-                font-size: 13px;
-                color: #94a3b8;
-                margin-bottom: 20px;
-            }
-
-            /* Ícone de segurança */
-            .security-icon {
-                width: 46px;
-                height: 46px;
+            .card-icon {
+                width: 40px;
+                height: 40px;
 
                 display: flex;
                 align-items: center;
                 justify-content: center;
 
-                border-radius: 12px;
+                border-radius: 11px;
 
-                background: rgba(168,85,247,0.12);
-                border: 1px solid rgba(168,85,247,0.2);
+                background:
+                    linear-gradient(
+                        135deg,
+                        rgba(124,58,237,0.16),
+                        rgba(37,99,235,0.12)
+                    );
 
-                font-size: 21px;
-                margin-bottom: 15px;
+                border:
+                    1px solid rgba(168,85,247,0.18);
+
+                color: #c4b5fd;
+
+                font-size: 18px;
             }
 
-            /* Rodapé */
+            .card-title {
+                color: #ffffff;
+                font-size: 17px;
+                font-weight: 680;
+                margin-bottom: 2px;
+            }
+
+            .card-description {
+                color: #64748b;
+                font-size: 11px;
+            }
+
+            /* =====================================================
+               INFORMAÇÕES
+            ===================================================== */
+
+            .info-item {
+                padding: 13px 14px;
+
+                background:
+                    rgba(255,255,255,0.025);
+
+                border:
+                    1px solid rgba(255,255,255,0.055);
+
+                border-radius: 10px;
+
+                margin-bottom: 9px;
+
+                transition:
+                    border-color 0.2s ease,
+                    background 0.2s ease;
+            }
+
+            .info-item:hover {
+                background:
+                    rgba(168,85,247,0.035);
+
+                border-color:
+                    rgba(168,85,247,0.14);
+            }
+
+            .info-label {
+                color: #64748b;
+
+                font-size: 10px;
+
+                text-transform: uppercase;
+
+                letter-spacing: 0.8px;
+
+                margin-bottom: 4px;
+            }
+
+            .info-value {
+                color: #e2e8f0;
+
+                font-size: 13px;
+
+                font-weight: 500;
+            }
+
+            /* =====================================================
+               FORMULÁRIO DE SENHA
+            ===================================================== */
+
+            div[data-testid="stForm"] {
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+            }
+
+            div[data-testid="stForm"] label {
+                color: #cbd5e1 !important;
+                font-size: 12px !important;
+                font-weight: 500 !important;
+            }
+
+            div[data-testid="stForm"] input {
+                background: rgba(255,255,255,0.045) !important;
+
+                border:
+                    1px solid rgba(255,255,255,0.08) !important;
+
+                border-radius: 9px !important;
+
+                color: #ffffff !important;
+
+                height: 42px !important;
+
+                transition:
+                    border-color 0.2s ease,
+                    box-shadow 0.2s ease;
+            }
+
+            div[data-testid="stForm"] input:focus {
+                border-color:
+                    rgba(168,85,247,0.65) !important;
+
+                box-shadow:
+                    0 0 0 2px rgba(168,85,247,0.10) !important;
+            }
+
+            div[data-testid="stForm"] button[kind="primary"] {
+                background:
+                    linear-gradient(
+                        135deg,
+                        #7c3aed,
+                        #2563eb
+                    ) !important;
+
+                border: none !important;
+
+                border-radius: 9px !important;
+
+                color: #ffffff !important;
+
+                font-weight: 600 !important;
+
+                min-height: 42px !important;
+
+                box-shadow:
+                    0 6px 18px rgba(124,58,237,0.22);
+
+                transition:
+                    transform 0.2s ease,
+                    box-shadow 0.2s ease;
+            }
+
+            div[data-testid="stForm"] button[kind="primary"]:hover {
+                transform: translateY(-1px);
+
+                box-shadow:
+                    0 8px 24px rgba(124,58,237,0.34);
+            }
+
+            /* =====================================================
+               DICA DE SEGURANÇA
+            ===================================================== */
+
+            .security-tip {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+
+                margin-top: 20px;
+
+                padding: 13px 16px;
+
+                background:
+                    linear-gradient(
+                        90deg,
+                        rgba(37,99,235,0.13),
+                        rgba(124,58,237,0.08)
+                    );
+
+                border:
+                    1px solid rgba(59,130,246,0.18);
+
+                border-radius: 11px;
+            }
+
+            .tip-icon {
+                font-size: 17px;
+            }
+
+            .tip-text {
+                color: #94a3b8;
+                font-size: 11px;
+                line-height: 1.5;
+            }
+
+            .tip-text strong {
+                color: #60a5fa;
+                font-weight: 600;
+            }
+
+            /* =====================================================
+               RODAPÉ
+            ===================================================== */
+
             .perfil-footer {
                 text-align: center;
+
                 color: #475569;
-                font-size: 12px;
+
+                font-size: 10px;
+
                 margin-top: 25px;
+            }
+
+            /* =====================================================
+               RESPONSIVO
+            ===================================================== */
+
+            @media (max-width: 800px) {
+
+                .identity-content {
+                    align-items: flex-start;
+                }
+
+                .status-area {
+                    display: none;
+                }
+
+                .perfil-title {
+                    font-size: 25px;
+                }
+
             }
 
             </style>
@@ -227,46 +517,65 @@ class PerfilView:
             "Administrador"
         )
 
-        # Inicial do nome
-        inicial = perfil_nome.strip()[0].upper() if perfil_nome else "A"
+        inicial = (
+            perfil_nome.strip()[0].upper()
+            if perfil_nome
+            else "A"
+        )
 
         # =========================================================
-        # CABEÇALHO
+        # VOLTAR
+        # =========================================================
+
+        if st.button(
+            "← Voltar ao Menu Principal",
+            key="voltar_perfil"
+        ):
+            st.session_state.admin_aba_ativa = "Menu Principal"
+            st.rerun()
+
+        # =========================================================
+        # PÁGINA
         # =========================================================
 
         st.markdown(
-            """
-            <div class="perfil-container">
+            f"""
+            <div class="perfil-page">
+
+                <!-- CABEÇALHO -->
+
                 <div class="perfil-header">
-                    <div class="perfil-title">
-                        Meu Perfil
+
+                    <div class="perfil-title-row">
+
+                        <div class="perfil-title-icon">
+                            ⚙
+                        </div>
+
+                        <div class="perfil-title">
+                            Meu Perfil
+                        </div>
+
                     </div>
 
                     <div class="perfil-subtitle">
                         Gerencie suas informações e credenciais de acesso.
                     </div>
+
                 </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
-        # =========================================================
-        # CARD DO PERFIL
-        # =========================================================
 
-        st.markdown(
-            f"""
-            <div class="perfil-container">
-                <div class="perfil-card">
+                <!-- IDENTIDADE -->
 
-                    <div class="perfil-topo">
+                <div class="identity-card">
+
+                    <div class="identity-content">
 
                         <div class="perfil-avatar">
                             {inicial}
                         </div>
 
-                        <div style="flex:1">
+                        <div class="identity-info">
 
                             <div class="perfil-nome">
                                 {perfil_nome}
@@ -276,26 +585,43 @@ class PerfilView:
                                 Administrador do sistema
                             </div>
 
+                            <div class="perfil-email">
+                                {usuario_email}
+                            </div>
+
                         </div>
 
-                        <div class="status-badge">
-                            <span class="status-dot"></span>
-                            Conta ativa
+                        <div class="status-area">
+
+                            <div class="status-dot"></div>
+
+                            <div class="status-text">
+                                Conta ativa
+                            </div>
+
                         </div>
 
                     </div>
 
                 </div>
+
             </div>
             """,
             unsafe_allow_html=True,
         )
 
         # =========================================================
-        # INFORMAÇÕES DA CONTA
+        # CARDS
         # =========================================================
 
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns(
+            [1, 1],
+            gap="large"
+        )
+
+        # =========================================================
+        # INFORMAÇÕES DA CONTA
+        # =========================================================
 
         with col1:
 
@@ -303,35 +629,40 @@ class PerfilView:
                 """
                 <div class="perfil-card">
 
-                    <div class="security-icon">
-                        👤
+                    <div class="card-header">
+
+                        <div class="card-icon">
+                            ◉
+                        </div>
+
+                        <div>
+
+                            <div class="card-title">
+                                Informações da conta
+                            </div>
+
+                            <div class="card-description">
+                                Dados vinculados à conta administrativa.
+                            </div>
+
+                        </div>
+
                     </div>
 
-                    <div class="security-title">
-                        Informações da conta
-                    </div>
+                    <div class="info-item">
 
-                    <div class="security-description">
-                        Dados vinculados à sua conta administrativa.
-                    </div>
-
-                """,
-                unsafe_allow_html=True,
-            )
-
-            st.markdown(
-                f"""
-                    <div class="info-box">
                         <div class="info-label">
-                            Nome
+                            Perfil de acesso
                         </div>
 
                         <div class="info-value">
-                            {perfil_nome}
+                            Administrador Master
                         </div>
+
                     </div>
 
-                    <div class="info-box">
+                    <div class="info-item">
+
                         <div class="info-label">
                             Login
                         </div>
@@ -339,9 +670,11 @@ class PerfilView:
                         <div class="info-value">
                             {usuario_login}
                         </div>
+
                     </div>
 
-                    <div class="info-box">
+                    <div class="info-item">
+
                         <div class="info-label">
                             E-mail
                         </div>
@@ -349,16 +682,19 @@ class PerfilView:
                         <div class="info-value">
                             {usuario_email}
                         </div>
+
                     </div>
 
-                    <div class="info-box">
+                    <div class="info-item">
+
                         <div class="info-label">
-                            Banco de dados
+                            Banco de dados conectado
                         </div>
 
                         <div class="info-value">
                             Oracle Database
                         </div>
+
                     </div>
 
                 </div>
@@ -367,7 +703,7 @@ class PerfilView:
             )
 
         # =========================================================
-        # ALTERAÇÃO DE SENHA
+        # SEGURANÇA
         # =========================================================
 
         with col2:
@@ -376,18 +712,25 @@ class PerfilView:
                 """
                 <div class="perfil-card">
 
-                    <div class="security-icon">
-                        🔐
-                    </div>
+                    <div class="card-header">
 
-                    <div class="security-title">
-                        Segurança
-                    </div>
+                        <div class="card-icon">
+                            🔐
+                        </div>
 
-                    <div class="security-description">
-                        Altere sua senha de acesso ao sistema.
-                    </div>
+                        <div>
 
+                            <div class="card-title">
+                                Segurança
+                            </div>
+
+                            <div class="card-description">
+                                Atualize sua senha de acesso.
+                            </div>
+
+                        </div>
+
+                    </div>
                 """,
                 unsafe_allow_html=True,
             )
@@ -413,7 +756,7 @@ class PerfilView:
                 )
 
                 alterar = st.form_submit_button(
-                    "🔒 Atualizar senha",
+                    "Atualizar senha",
                     type="primary",
                     width="stretch"
                 )
@@ -421,26 +764,30 @@ class PerfilView:
                 if alterar:
 
                     if not senha_atual:
-                        st.error("Digite sua senha atual.")
+
+                        st.error(
+                            "Digite sua senha atual."
+                        )
 
                     elif not nova_senha:
-                        st.error("Digite a nova senha.")
+
+                        st.error(
+                            "Digite a nova senha."
+                        )
 
                     elif len(nova_senha) < 4:
+
                         st.error(
                             "A nova senha deve possuir pelo menos 4 caracteres."
                         )
 
                     elif nova_senha != confirmar_senha:
+
                         st.error(
                             "A confirmação da nova senha não coincide."
                         )
 
                     else:
-
-                        # -------------------------------------------------
-                        # Recupera o login atual
-                        # -------------------------------------------------
 
                         login_atual = st.session_state.get(
                             "admin_usuario",
@@ -449,10 +796,6 @@ class PerfilView:
 
                         if not login_atual:
                             login_atual = usuario_email
-
-                        # -------------------------------------------------
-                        # Importação local para evitar dependência circular
-                        # -------------------------------------------------
 
                         import hashlib
 
@@ -473,11 +816,13 @@ class PerfilView:
                             )
 
                             if sucesso:
+
                                 st.success(
-                                    "Senha atualizada com sucesso!"
+                                    "Senha atualizada com sucesso."
                                 )
 
                             else:
+
                                 st.error(
                                     "Não foi possível alterar a senha. "
                                     "Verifique sua senha atual."
@@ -492,14 +837,13 @@ class PerfilView:
 
             st.markdown(
                 """
-                    <div style="
-                        margin-top: 12px;
-                        font-size: 12px;
-                        color: #64748b;
-                    ">
-                        🔒 Sua senha é armazenada utilizando hash
-                        SHA-256.
-                    </div>
+                <div style="
+                    margin-top: 13px;
+                    color: #475569;
+                    font-size: 10px;
+                ">
+                    As credenciais são protegidas por hash SHA-256.
+                </div>
 
                 </div>
                 """,
@@ -507,170 +851,32 @@ class PerfilView:
             )
 
         # =========================================================
-        # RODAPÉ
+        # DICA
         # =========================================================
 
         st.markdown(
             """
-            <div class="perfil-footer">
-                Vitta Vision • Área administrativa
+            <div class="perfil-page">
+
+                <div class="security-tip">
+
+                    <div class="tip-icon">
+                        💡
+                    </div>
+
+                    <div class="tip-text">
+                        <strong>Dica de segurança:</strong>
+                        nunca compartilhe suas credenciais de administrador
+                        com terceiros.
+                    </div>
+
+                </div>
+
+                <div class="perfil-footer">
+                    Vitta Vision • Área administrativa
+                </div>
+
             </div>
             """,
             unsafe_allow_html=True,
         )
-
-
-class AdminPainelView:
-    """Painel administrativo."""
-
-    def render(self):
-
-        db = OracleDatabase()
-
-        if "admin_aba_ativa" not in st.session_state:
-            st.session_state.admin_aba_ativa = "Menu Principal"
-
-        if st.session_state.admin_aba_ativa != "Menu Principal":
-
-            if st.session_state.admin_aba_ativa == "Módulo Acessos":
-
-                if st.button(
-                    "← Voltar ao Menu Principal",
-                    key="voltar_acessos"
-                ):
-                    st.session_state.admin_aba_ativa = "Menu Principal"
-                    st.rerun()
-
-                UsuariosView().render(db)
-
-            elif st.session_state.admin_aba_ativa == "Módulo de Tabelas":
-
-                if st.button(
-                    "← Voltar ao Menu Principal",
-                    key="voltar_tabelas"
-                ):
-                    st.session_state.admin_aba_ativa = "Menu Principal"
-                    st.rerun()
-
-                DatabaseView().render(db)
-
-            elif st.session_state.admin_aba_ativa == "Meu Perfil":
-
-                PerfilView().render(db)
-
-            return
-
-        # =========================================================
-        # MENU PRINCIPAL
-        # =========================================================
-
-        st.markdown(
-            """
-            <style>
-
-            div.stButton > button {
-                background:
-                    linear-gradient(
-                        145deg,
-                        rgba(18, 24, 38, 0.95),
-                        rgba(26, 16, 47, 0.95)
-                    );
-
-                border: 1px solid rgba(168, 85, 247, 0.25);
-                border-radius: 16px;
-
-                color: #ffffff;
-
-                padding: 30px 24px;
-
-                text-align: left;
-                width: 100%;
-
-                box-shadow:
-                    0 8px 30px rgba(0, 0, 0, 0.4);
-
-                transition: all 0.3s ease;
-            }
-
-            div.stButton > button:hover {
-                background:
-                    linear-gradient(
-                        145deg,
-                        rgba(28, 36, 58, 1),
-                        rgba(40, 24, 71, 1)
-                    );
-
-                border-color: rgba(168, 85, 247, 0.8);
-
-                box-shadow:
-                    0 12px 40px rgba(168, 85, 247, 0.3);
-
-                transform: translateY(-3px);
-            }
-
-            div.stButton > button p {
-                margin: 0px !important;
-            }
-
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        st.markdown("## 🔒 Painel Administrativo")
-        st.write("")
-
-        row1_col1, row1_col2 = st.columns(2)
-
-        with row1_col1:
-
-            if st.button(
-                "👥 **Módulo Acessos**\n\n"
-                "Gerenciar acessos e cadastros.",
-                key="card_acessos",
-                width="stretch"
-            ):
-                st.session_state.admin_aba_ativa = "Módulo Acessos"
-                st.rerun()
-
-        with row1_col2:
-
-            if st.button(
-                "🗄️ **Módulo de Tabelas**\n\n"
-                "Consultas e status do Oracle.",
-                key="card_tabelas",
-                width="stretch"
-            ):
-                st.session_state.admin_aba_ativa = "Módulo de Tabelas"
-                st.rerun()
-
-        st.write("")
-
-        row2_col1, row2_col2 = st.columns(2)
-
-        with row2_col1:
-
-            if st.button(
-                "⚙️ **Meu Perfil**\n\n"
-                "Visualizar dados da conta ativa.",
-                key="card_perfil",
-                width="stretch"
-            ):
-                st.session_state.admin_aba_ativa = "Meu Perfil"
-                st.rerun()
-
-        with row2_col2:
-
-            if st.button(
-                "🚪 **Sair do Sistema**\n\n"
-                "Encerrar a sessão atual.",
-                key="card_sair",
-                width="stretch"
-            ):
-                st.session_state.admin_logado = False
-                st.session_state.admin_perfil = ""
-                st.session_state.admin_usuario = ""
-                st.session_state.admin_email = ""
-                st.session_state.admin_aba_ativa = "Menu Principal"
-
-                st.rerun()

@@ -106,9 +106,6 @@ class AdminPainelView:
             unsafe_allow_html=True,
         )
 
-        st.markdown("## 🔒 Painel Administrativo")
-        st.write("")
-
         row1_col1, row1_col2 = st.columns(2)
 
         with row1_col1:
