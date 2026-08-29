@@ -1,9 +1,16 @@
+import sys
+import os
+
+# Adiciona a pasta 'src' ao PYTHONPATH do projeto dinamicamente
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))
+
 import hashlib
 
 import pandas as pd
 import streamlit as st
 
 from model.oracle_connection import OracleDatabase
+from model.hospitais_model import HospitaisModel
 
 from view.admin.painel_view import AdminPainelView
 from view.assistente_ia_view import AssistenteIAView
@@ -111,8 +118,8 @@ st.markdown(
 
 def gerar_hash_senha(senha: str) -> str:
     """
-    Gera o mesmo SHA-256 utilizado no cadastro
-    dos administradores.
+    Gera o SHA-256 utilizado no cadastro
+    e validação dos administradores.
     """
 
     return hashlib.sha256(
@@ -134,6 +141,7 @@ class AdminView:
     def render(self, db):
 
         st.title("🔒 Painel Administrativo")
+
         st.caption(
             "Gerenciamento administrativo do Vitta Vision."
         )
@@ -241,20 +249,39 @@ class MainController:
     def __init__(self):
 
         # ----------------------------------------------------
-        # Banco Oracle
+        # BANCO ORACLE
         # ----------------------------------------------------
 
         self.db = OracleDatabase()
 
         # ----------------------------------------------------
-        # Model temporário utilizado pelas telas que ainda
-        # trabalham com dados mockados.
+        # MODELS
+        # ----------------------------------------------------
+        #
+        # Cada tela que já possui integração com o Oracle
+        # recebe seu próprio Model.
+        #
+        # Hospitais NÃO utiliza mais ModelMock.
+        # ----------------------------------------------------
+
+        self.hospitais_model = HospitaisModel(
+            self.db
+        )
+
+        # ----------------------------------------------------
+        # MODEL TEMPORÁRIO
+        # ----------------------------------------------------
+        #
+        # Mantido somente para as telas que ainda dependem
+        # do modelo antigo/mock.
+        #
+        # Isso NÃO é utilizado pela tela Hospitais.
         # ----------------------------------------------------
 
         self.model = self.carregar_model()
 
         # ----------------------------------------------------
-        # Header
+        # HEADER
         # ----------------------------------------------------
 
         self.header = HeaderComponent()
@@ -374,11 +401,18 @@ class MainController:
         # ----------------------------------------------------
         # HOSPITAIS
         # ----------------------------------------------------
+        #
+        # IMPORTANTE:
+        # Hospitais agora recebe HospitaisModel,
+        # conectado diretamente ao Oracle.
+        #
+        # Não recebe mais ModelMock.
+        # ----------------------------------------------------
 
         elif pagina_atual == "Hospitais":
 
             HospitaisView().render(
-                self.model
+                self.hospitais_model
             )
 
         # ----------------------------------------------------
@@ -403,8 +437,8 @@ class MainController:
 
         # ----------------------------------------------------
         # RELATÓRIOS
+        # ----------------------------------------------------
         #
-        # IMPORTANTE:
         # RelatoriosView recebe o OracleDatabase diretamente.
         # ----------------------------------------------------
 
@@ -435,7 +469,8 @@ class MainController:
             )
 
             st.info(
-                "Volte para o Dashboard utilizando o menu superior."
+                "Volte para o Dashboard utilizando "
+                "o menu superior."
             )
 
 
