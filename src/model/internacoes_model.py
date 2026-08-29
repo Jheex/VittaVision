@@ -210,16 +210,6 @@ class InternacoesModel:
         if not municipio:
             return pd.DataFrame()
 
-        query = f"""
-            SELECT *
-            FROM {self.tabela}
-            WHERE UPPER(MUNICIPIO) LIKE UPPER(:1)
-            ORDER BY MUNICIPIO
-        """
-
-        # Como executar_query_sql atualmente não recebe parâmetros,
-        # usamos diretamente o método de conexão.
-
         connection = None
 
         try:
@@ -245,6 +235,40 @@ class InternacoesModel:
                 connection.close()
 
     # =========================================================
+    # DADOS PARA A VIEW
+    # =========================================================
+
+    def dados_para_view(self):
+        """
+        Retorna os dados de TB_INTERNACOES no formato
+        esperado pela InternacoesView.
+        """
+
+        query = f"""
+            SELECT
+                CODIGO_MUNICIPIO,
+                MUNICIPIO,
+                CODIGO_UF,
+                VL_JAN_2025 AS "2025/Jan",
+                VL_FEV_2025 AS "2025/Fev",
+                VL_MAR_2025 AS "2025/Mar",
+                VL_ABR_2025 AS "2025/Abr",
+                VL_MAI_2025 AS "2025/Mai",
+                VL_JUN_2025 AS "2025/Jun",
+                VL_JUL_2025 AS "2025/Jul",
+                VL_AGO_2025 AS "2025/Ago",
+                VL_SET_2025 AS "2025/Set",
+                VL_OUT_2025 AS "2025/Out",
+                VL_NOV_2025 AS "2025/Nov",
+                VL_DEZ_2025 AS "2025/Dez",
+                VL_TOTAL_2025 AS "Total"
+            FROM {self.tabela}
+            ORDER BY MUNICIPIO
+        """
+
+        return self.db.executar_query_sql(query)
+
+    # =========================================================
     # IMPORTAR CSV
     # =========================================================
 
@@ -258,10 +282,6 @@ class InternacoesModel:
                 "Nenhum arquivo foi enviado."
             )
 
-        # -----------------------------------------------------
-        # Leitura
-        # -----------------------------------------------------
-
         df = pd.read_csv(
             arquivo,
             sep=";"
@@ -272,20 +292,12 @@ class InternacoesModel:
                 "O arquivo CSV está vazio."
             )
 
-        # -----------------------------------------------------
-        # Padronização dos nomes
-        # -----------------------------------------------------
-
         df.columns = [
             str(coluna)
             .strip()
             .upper()
             for coluna in df.columns
         ]
-
-        # -----------------------------------------------------
-        # Colunas esperadas
-        # -----------------------------------------------------
 
         colunas_esperadas = [
             "CODIGO_MUNICIPIO",
@@ -318,15 +330,7 @@ class InternacoesModel:
                 + ", ".join(faltantes)
             )
 
-        # -----------------------------------------------------
-        # Seleciona somente as colunas utilizadas
-        # -----------------------------------------------------
-
         df = df[colunas_esperadas]
-
-        # -----------------------------------------------------
-        # Conversão dos campos numéricos
-        # -----------------------------------------------------
 
         colunas_numericas = [
             "CODIGO_MUNICIPIO",
@@ -347,15 +351,10 @@ class InternacoesModel:
         ]
 
         for coluna in colunas_numericas:
-
             df[coluna] = pd.to_numeric(
                 df[coluna],
                 errors="coerce"
             )
-
-        # -----------------------------------------------------
-        # Importação
-        # -----------------------------------------------------
 
         quantidade = self.db.importar_dataframe(
             self.tabela,

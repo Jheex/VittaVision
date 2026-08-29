@@ -5,114 +5,74 @@ class HospitaisModel:
     """
     Model responsável pelo acesso aos dados hospitalares
     armazenados na tabela TB_GERAL do Oracle.
+
+    IMPORTANTE:
+    A TB_GERAL possui dados agregados por município.
+    Não possui CNES, nome de hospital ou coordenadas geográficas.
     """
 
     def __init__(self, db):
         self.db = db
 
     # =========================================================
-    # DADOS PRINCIPAIS DO DASHBOARD
+    # DADOS PRINCIPAIS
     # =========================================================
 
-    def obter_dados_dashboard(self):
+    def listar_dados(self):
         """
-        Retorna os dados hospitalares diretamente do Oracle.
-        Não utiliza CSV nem dados fictícios.
+        Retorna os dados completos da TB_GERAL.
         """
 
         query = """
             SELECT
-                ID_LEITO,
-                COMP,
-                REGIAO,
+                ID_GERAL,
+                COD_IBGE,
+                COD_UF,
                 UF,
-                CO_IBGE,
                 MUNICIPIO,
-                MOTIVO_DESABILITACAO,
-                CNES,
-                NOME_ESTABELECIMENTO,
-                RAZAO_SOCIAL,
-                TP_GESTAO,
-                CO_TIPO_UNIDADE,
-                DS_TIPO_UNIDADE,
-                NATUREZA_JURIDICA,
-                DESC_NATUREZA_JURIDICA,
-                NO_LOGRADOURO,
-                NU_ENDERECO,
-                NO_COMPLEMENTO,
-                NO_BAIRRO,
-                CO_CEP,
-                NU_TELEFONE,
-                NO_EMAIL,
+                POPULACAO_ESTIMADA,
+
+                INTERNACOES_JAN_2025,
+                INTERNACOES_FEV_2025,
+                INTERNACOES_MAR_2025,
+                INTERNACOES_ABR_2025,
+                INTERNACOES_MAI_2025,
+                INTERNACOES_JUN_2025,
+                INTERNACOES_JUL_2025,
+                INTERNACOES_AGO_2025,
+                INTERNACOES_SET_2025,
+                INTERNACOES_OUT_2025,
+                INTERNACOES_NOV_2025,
+                INTERNACOES_DEZ_2025,
+
+                INTERNACOES_TOTAL_2025,
+
                 LEITOS_EXISTENTES,
                 LEITOS_SUS,
+
                 UTI_TOTAL_EXIST,
                 UTI_TOTAL_SUS,
+
                 UTI_ADULTO_EXIST,
                 UTI_ADULTO_SUS,
+
                 UTI_PEDIATRICO_EXIST,
                 UTI_PEDIATRICO_SUS,
+
                 UTI_NEONATAL_EXIST,
                 UTI_NEONATAL_SUS,
+
                 UTI_QUEIMADO_EXIST,
                 UTI_QUEIMADO_SUS,
+
                 UTI_CORONARIANA_EXIST,
                 UTI_CORONARIANA_SUS,
-                DT_IMPORTACAO,
+
                 COMP_LEITOS
+
             FROM TB_GERAL
-        """
 
-        return self.db.fetch_data(query)
-
-    # =========================================================
-    # LISTAR HOSPITAIS
-    # =========================================================
-
-    def listar_hospitais(self):
-
-        query = """
-            SELECT
-                ID_LEITO,
-                COMP,
-                REGIAO,
-                UF,
-                CO_IBGE,
-                MUNICIPIO,
-                MOTIVO_DESABILITACAO,
-                CNES,
-                NOME_ESTABELECIMENTO,
-                RAZAO_SOCIAL,
-                TP_GESTAO,
-                CO_TIPO_UNIDADE,
-                DS_TIPO_UNIDADE,
-                NATUREZA_JURIDICA,
-                DESC_NATUREZA_JURIDICA,
-                NO_LOGRADOURO,
-                NU_ENDERECO,
-                NO_COMPLEMENTO,
-                NO_BAIRRO,
-                CO_CEP,
-                NU_TELEFONE,
-                NO_EMAIL,
-                LEITOS_EXISTENTES,
-                LEITOS_SUS,
-                UTI_TOTAL_EXIST,
-                UTI_TOTAL_SUS,
-                UTI_ADULTO_EXIST,
-                UTI_ADULTO_SUS,
-                UTI_PEDIATRICO_EXIST,
-                UTI_PEDIATRICO_SUS,
-                UTI_NEONATAL_EXIST,
-                UTI_NEONATAL_SUS,
-                UTI_QUEIMADO_EXIST,
-                UTI_QUEIMADO_SUS,
-                UTI_CORONARIANA_EXIST,
-                UTI_CORONARIANA_SUS,
-                DT_IMPORTACAO,
-                COMP_LEITOS
-            FROM TB_GERAL
-            ORDER BY NOME_ESTABELECIMENTO
+            ORDER BY MUNICIPIO
         """
 
         return self.db.fetch_data(query)
@@ -122,17 +82,21 @@ class HospitaisModel:
     # =========================================================
 
     def obter_indicadores(self):
+        """
+        Calcula os indicadores diretamente no Oracle.
+        """
 
         query = """
             SELECT
-                COUNT(DISTINCT CNES) AS TOTAL_HOSPITAIS,
 
-                COUNT(
-                    DISTINCT CASE
-                        WHEN MOTIVO_DESABILITACAO IS NULL
-                        THEN CNES
-                    END
-                ) AS HOSPITAIS_ATIVOS,
+                COUNT(DISTINCT COD_IBGE)
+                    AS TOTAL_MUNICIPIOS,
+
+                NVL(SUM(POPULACAO_ESTIMADA), 0)
+                    AS POPULACAO_TOTAL,
+
+                NVL(SUM(INTERNACOES_TOTAL_2025), 0)
+                    AS INTERNACOES_TOTAL,
 
                 NVL(SUM(LEITOS_EXISTENTES), 0)
                     AS LEITOS_TOTAIS,
@@ -144,7 +108,7 @@ class HospitaisModel:
                     AS UTI_TOTAL,
 
                 NVL(SUM(UTI_TOTAL_SUS), 0)
-                    AS UTI_TOTAL_SUS
+                    AS UTI_SUS
 
             FROM TB_GERAL
         """
@@ -153,185 +117,229 @@ class HospitaisModel:
 
         if df.empty:
             return {
-                "total_hospitais": 0,
-                "hospitais_ativos": 0,
+                "total_municipios": 0,
+                "populacao_total": 0,
+                "internacoes_total": 0,
                 "leitos_totais": 0,
                 "leitos_sus": 0,
                 "uti_total": 0,
-                "uti_total_sus": 0,
+                "uti_sus": 0,
             }
 
         linha = df.iloc[0]
 
         return {
-            "total_hospitais": int(linha["TOTAL_HOSPITAIS"] or 0),
-            "hospitais_ativos": int(linha["HOSPITAIS_ATIVOS"] or 0),
-            "leitos_totais": int(linha["LEITOS_TOTAIS"] or 0),
-            "leitos_sus": int(linha["LEITOS_SUS"] or 0),
-            "uti_total": int(linha["UTI_TOTAL"] or 0),
-            "uti_total_sus": int(linha["UTI_TOTAL_SUS"] or 0),
+            "total_municipios": int(
+                linha["TOTAL_MUNICIPIOS"] or 0
+            ),
+
+            "populacao_total": int(
+                linha["POPULACAO_TOTAL"] or 0
+            ),
+
+            "internacoes_total": int(
+                linha["INTERNACOES_TOTAL"] or 0
+            ),
+
+            "leitos_totais": int(
+                linha["LEITOS_TOTAIS"] or 0
+            ),
+
+            "leitos_sus": int(
+                linha["LEITOS_SUS"] or 0
+            ),
+
+            "uti_total": int(
+                linha["UTI_TOTAL"] or 0
+            ),
+
+            "uti_sus": int(
+                linha["UTI_SUS"] or 0
+            ),
         }
 
     # =========================================================
-    # HOSPITAIS POR REGIÃO
+    # MUNICÍPIOS POR UF
     # =========================================================
 
-    def hospitais_por_regiao(self):
-
-        query = """
-            SELECT
-                REGIAO,
-                COUNT(DISTINCT CNES) AS TOTAL
-            FROM TB_GERAL
-            WHERE REGIAO IS NOT NULL
-            GROUP BY REGIAO
-            ORDER BY TOTAL DESC
+    def municipios_por_uf(self):
+        """
+        Retorna a quantidade de municípios por UF.
         """
 
-        return self.db.fetch_data(query)
-
-    # =========================================================
-    # HOSPITAIS POR GESTÃO
-    # =========================================================
-
-    def hospitais_por_gestao(self):
-
         query = """
             SELECT
-                TP_GESTAO,
-                COUNT(DISTINCT CNES) AS TOTAL
-            FROM TB_GERAL
-            WHERE TP_GESTAO IS NOT NULL
-            GROUP BY TP_GESTAO
-            ORDER BY TOTAL DESC
-        """
-
-        return self.db.fetch_data(query)
-
-    # =========================================================
-    # HOSPITAIS POR TIPO DE UNIDADE
-    # =========================================================
-
-    def hospitais_por_tipo(self):
-
-        query = """
-            SELECT
-                DS_TIPO_UNIDADE,
-                COUNT(DISTINCT CNES) AS TOTAL
-            FROM TB_GERAL
-            WHERE DS_TIPO_UNIDADE IS NOT NULL
-            GROUP BY DS_TIPO_UNIDADE
-            ORDER BY TOTAL DESC
-        """
-
-        return self.db.fetch_data(query)
-
-    # =========================================================
-    # HOSPITAIS POR PORTE
-    # =========================================================
-
-    def hospitais_por_porte(self):
-
-        query = """
-            SELECT
-                PORTE,
-                COUNT(*) AS TOTAL
-            FROM
-            (
-                SELECT
-                    CNES,
-
-                    CASE
-                        WHEN MAX(NVL(LEITOS_EXISTENTES, 0)) < 50
-                            THEN 'Pequeno'
-
-                        WHEN MAX(NVL(LEITOS_EXISTENTES, 0)) < 150
-                            THEN 'Médio'
-
-                        WHEN MAX(NVL(LEITOS_EXISTENTES, 0)) < 300
-                            THEN 'Grande'
-
-                        ELSE 'Extra-grande'
-                    END AS PORTE
-
-                FROM TB_GERAL
-
-                WHERE CNES IS NOT NULL
-
-                GROUP BY CNES
-            )
-
-            GROUP BY PORTE
-
-            ORDER BY
-                CASE PORTE
-                    WHEN 'Pequeno' THEN 1
-                    WHEN 'Médio' THEN 2
-                    WHEN 'Grande' THEN 3
-                    WHEN 'Extra-grande' THEN 4
-                END
-        """
-
-        return self.db.fetch_data(query)
-
-    # =========================================================
-    # DADOS DO MAPA
-    # =========================================================
-
-    def dados_mapa(self):
-
-        query = """
-            SELECT
-                CNES,
-                NOME_ESTABELECIMENTO,
-                MUNICIPIO,
                 UF,
-                REGIAO,
-                LEITOS_EXISTENTES,
-                LEITOS_SUS
+                COUNT(DISTINCT COD_IBGE) AS TOTAL
             FROM TB_GERAL
-            WHERE CNES IS NOT NULL
+            WHERE UF IS NOT NULL
+            GROUP BY UF
+            ORDER BY TOTAL DESC
         """
 
         return self.db.fetch_data(query)
 
     # =========================================================
-    # BUSCAR HOSPITAIS
+    # INTERNAÇÕES POR MÊS
     # =========================================================
 
-    def buscar_hospitais(self, termo):
+    def internacoes_por_mes(self):
+        """
+        Retorna as internações mensais de 2025.
 
-        if not termo:
-            return self.listar_hospitais()
+        Os dados são provenientes diretamente
+        das colunas da TB_GERAL.
+        """
+
+        query = """
+            SELECT
+                NVL(SUM(INTERNACOES_JAN_2025), 0)
+                    AS JAN,
+
+                NVL(SUM(INTERNACOES_FEV_2025), 0)
+                    AS FEV,
+
+                NVL(SUM(INTERNACOES_MAR_2025), 0)
+                    AS MAR,
+
+                NVL(SUM(INTERNACOES_ABR_2025), 0)
+                    AS ABR,
+
+                NVL(SUM(INTERNACOES_MAI_2025), 0)
+                    AS MAI,
+
+                NVL(SUM(INTERNACOES_JUN_2025), 0)
+                    AS JUN,
+
+                NVL(SUM(INTERNACOES_JUL_2025), 0)
+                    AS JUL,
+
+                NVL(SUM(INTERNACOES_AGO_2025), 0)
+                    AS AGO,
+
+                NVL(SUM(INTERNACOES_SET_2025), 0)
+                    AS SET,
+
+                NVL(SUM(INTERNACOES_OUT_2025), 0)
+                    AS OUT,
+
+                NVL(SUM(INTERNACOES_NOV_2025), 0)
+                    AS NOV,
+
+                NVL(SUM(INTERNACOES_DEZ_2025), 0)
+                    AS DEZ
+
+            FROM TB_GERAL
+        """
+
+        return self.db.fetch_data(query)
+
+    # =========================================================
+    # LEITOS POR UF
+    # =========================================================
+
+    def leitos_por_uf(self):
+        """
+        Retorna leitos existentes e SUS por UF.
+        """
+
+        query = """
+            SELECT
+                UF,
+
+                NVL(SUM(LEITOS_EXISTENTES), 0)
+                    AS LEITOS_EXISTENTES,
+
+                NVL(SUM(LEITOS_SUS), 0)
+                    AS LEITOS_SUS
+
+            FROM TB_GERAL
+
+            WHERE UF IS NOT NULL
+
+            GROUP BY UF
+
+            ORDER BY LEITOS_EXISTENTES DESC
+        """
+
+        return self.db.fetch_data(query)
+
+    # =========================================================
+    # UTIS POR UF
+    # =========================================================
+
+    def utis_por_uf(self):
+        """
+        Retorna quantidade de UTIs por UF.
+        """
+
+        query = """
+            SELECT
+                UF,
+
+                NVL(SUM(UTI_TOTAL_EXIST), 0)
+                    AS UTI_TOTAL,
+
+                NVL(SUM(UTI_TOTAL_SUS), 0)
+                    AS UTI_SUS
+
+            FROM TB_GERAL
+
+            WHERE UF IS NOT NULL
+
+            GROUP BY UF
+
+            ORDER BY UTI_TOTAL DESC
+        """
+
+        return self.db.fetch_data(query)
+
+    # =========================================================
+    # BUSCA POR MUNICÍPIO
+    # =========================================================
+
+    def buscar_municipios(self, termo=""):
+        """
+        Busca municípios por nome, UF ou código IBGE.
+        """
 
         termo = str(termo).strip()
 
+        if not termo:
+            return self.listar_dados()
+
         query = """
             SELECT
-                CNES,
-                NOME_ESTABELECIMENTO,
-                MUNICIPIO,
+                ID_GERAL,
+                COD_IBGE,
+                COD_UF,
                 UF,
-                DS_TIPO_UNIDADE,
-                TP_GESTAO,
+                MUNICIPIO,
+                POPULACAO_ESTIMADA,
+
+                INTERNACOES_TOTAL_2025,
+
                 LEITOS_EXISTENTES,
                 LEITOS_SUS,
+
                 UTI_TOTAL_EXIST,
                 UTI_TOTAL_SUS,
-                MOTIVO_DESABILITACAO
+
+                COMP_LEITOS
+
             FROM TB_GERAL
 
             WHERE
-                UPPER(NOME_ESTABELECIMENTO)
+                UPPER(MUNICIPIO)
                     LIKE '%' || UPPER(:1) || '%'
 
-                OR UPPER(MUNICIPIO)
+                OR UPPER(UF)
                     LIKE '%' || UPPER(:2) || '%'
 
-                OR TO_CHAR(CNES)
+                OR TO_CHAR(COD_IBGE)
                     LIKE '%' || :3 || '%'
 
-            ORDER BY NOME_ESTABELECIMENTO
+            ORDER BY MUNICIPIO
         """
 
         return self.db.fetch_data(
@@ -344,80 +352,97 @@ class HospitaisModel:
         )
 
     # =========================================================
-    # RESUMO POR ESTABELECIMENTO
+    # TOP MUNICÍPIOS POR INTERNAÇÕES
     # =========================================================
 
-    def resumo_estabelecimentos(self):
+    def top_municipios_internacoes(self, limite=10):
+        """
+        Retorna os municípios com maior quantidade
+        de internações em 2025.
+        """
 
-        query = """
-            SELECT
-                CNES,
+        limite = max(1, min(int(limite), 100))
 
-                MAX(NOME_ESTABELECIMENTO)
-                    AS NOME_ESTABELECIMENTO,
+        query = f"""
+            SELECT *
+            FROM
+            (
+                SELECT
+                    MUNICIPIO,
+                    UF,
+                    INTERNACOES_TOTAL_2025,
+                    LEITOS_EXISTENTES,
+                    LEITOS_SUS,
+                    UTI_TOTAL_EXIST,
+                    UTI_TOTAL_SUS
 
-                MAX(MUNICIPIO)
-                    AS MUNICIPIO,
+                FROM TB_GERAL
 
-                MAX(UF)
-                    AS UF,
+                WHERE MUNICIPIO IS NOT NULL
 
-                MAX(REGIAO)
-                    AS REGIAO,
+                ORDER BY INTERNACOES_TOTAL_2025 DESC
+            )
 
-                MAX(TP_GESTAO)
-                    AS TP_GESTAO,
-
-                MAX(DS_TIPO_UNIDADE)
-                    AS DS_TIPO_UNIDADE,
-
-                SUM(NVL(LEITOS_EXISTENTES, 0))
-                    AS LEITOS_EXISTENTES,
-
-                SUM(NVL(LEITOS_SUS, 0))
-                    AS LEITOS_SUS,
-
-                SUM(NVL(UTI_TOTAL_EXIST, 0))
-                    AS UTI_TOTAL_EXIST,
-
-                SUM(NVL(UTI_TOTAL_SUS, 0))
-                    AS UTI_TOTAL_SUS
-
-            FROM TB_GERAL
-
-            WHERE CNES IS NOT NULL
-
-            GROUP BY CNES
-
-            ORDER BY NOME_ESTABELECIMENTO
+            FETCH FIRST {limite} ROWS ONLY
         """
 
         return self.db.fetch_data(query)
 
     # =========================================================
-    # ÚLTIMA IMPORTAÇÃO
+    # TOP MUNICÍPIOS POR LEITOS
     # =========================================================
 
-    def obter_ultima_importacao(self):
-
-        query = """
-            SELECT
-                MAX(DT_IMPORTACAO) AS ULTIMA_IMPORTACAO
-            FROM TB_GERAL
+    def top_municipios_leitos(self, limite=10):
+        """
+        Retorna os municípios com maior quantidade de leitos.
         """
 
-        df = self.db.fetch_data(query)
+        limite = max(1, min(int(limite), 100))
 
-        if df.empty:
-            return None
+        query = f"""
+            SELECT *
+            FROM
+            (
+                SELECT
+                    MUNICIPIO,
+                    UF,
+                    LEITOS_EXISTENTES,
+                    LEITOS_SUS,
+                    UTI_TOTAL_EXIST,
+                    UTI_TOTAL_SUS,
+                    INTERNACOES_TOTAL_2025
 
-        return df.iloc[0]["ULTIMA_IMPORTACAO"]
+                FROM TB_GERAL
+
+                WHERE MUNICIPIO IS NOT NULL
+
+                ORDER BY LEITOS_EXISTENTES DESC
+            )
+
+            FETCH FIRST {limite} ROWS ONLY
+        """
+
+        return self.db.fetch_data(query)
+
+    # =========================================================
+    # ÚLTIMA INFORMAÇÃO DE COMPETÊNCIA
+    # =========================================================
+
+    def obter_competencia(self):
+        """
+        Retorna a competência dos dados disponíveis.
+        """
+
+        return "2025"
 
     # =========================================================
     # TOTAL DE REGISTROS
     # =========================================================
 
     def total_registros(self):
+        """
+        Retorna o total de registros da TB_GERAL.
+        """
 
         query = """
             SELECT COUNT(*) AS TOTAL

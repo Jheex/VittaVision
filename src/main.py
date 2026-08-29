@@ -1,16 +1,11 @@
-import sys
-import os
-
-# Adiciona a pasta 'src' ao PYTHONPATH do projeto dinamicamente
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))
-
 import hashlib
-
 import pandas as pd
 import streamlit as st
 
 from model.oracle_connection import OracleDatabase
 from model.hospitais_model import HospitaisModel
+from model.internacoes_model import InternacoesModel
+from model.leitos_model import LeitosModel
 
 from view.admin.painel_view import AdminPainelView
 from view.assistente_ia_view import AssistenteIAView
@@ -268,6 +263,13 @@ class MainController:
             self.db
         )
 
+        self.internacoes_model = InternacoesModel(
+            self.db
+        )
+
+        self.leitos_model = LeitosModel(
+            self.db
+        )
         # ----------------------------------------------------
         # MODEL TEMPORÁRIO
         # ----------------------------------------------------
@@ -422,7 +424,7 @@ class MainController:
         elif pagina_atual == "Internações":
 
             InternacoesView().render(
-                self.model
+                self.internacoes_model
             )
 
         # ----------------------------------------------------
@@ -432,8 +434,8 @@ class MainController:
         elif pagina_atual == "Leitos":
 
             LeitosView().render(
-                self.model
-            )
+                self.leitos_model
+        )
 
         # ----------------------------------------------------
         # RELATÓRIOS

@@ -2,8 +2,6 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-# Import relativo mantendo o padrão da aplicação
-from model.data_loader import carregar_dados_ultimo_mes
 
 # ==========================================================
 # FUNÇÃO COM CACHE PARA PROCESSAMENTO DE DADOS
@@ -115,10 +113,14 @@ class InternacoesView:
         # ==========================================================
         # 1. CARREGAMENTO E TRATAMENTO DOS DADOS (CACHE)
         # ==========================================================
-        df_raw = carregar_dados_ultimo_mes("internacoes.csv")
-        
+        if model is None:
+            st.error("Modelo de Internações não foi inicializado.")
+            return
+
+        df_raw = model.dados_para_view()
+
         if df_raw is None or df_raw.empty:
-            st.error("⚠️ O arquivo `internacoes.csv` não foi encontrado na pasta de dados ou está vazio.")
+            st.error("Não foram encontrados dados de internações no banco de dados.")
             return
 
         df_int, cols_meses_presentes = preparar_dados(df_raw)
