@@ -1,41 +1,165 @@
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
 import streamlit as st
 
 
+# =========================================================
+# CONSOLIDAÇÃO DOS DADOS
+# =========================================================
+
+@st.cache_data(
+    show_spinner="Processando dados hospitalares..."
+)
+def consolidar_dados_hospitais(df):
+
+    if df is None or df.empty:
+        return pd.DataFrame()
+
+    df = df.copy()
+
+    # =====================================================
+    # NORMALIZAÇÃO DAS COLUNAS
+    # =====================================================
+
+    df.columns = [
+        str(col).strip().upper()
+        for col in df.columns
+    ]
+
+    # =====================================================
+    # CNES
+    # =====================================================
+
+    if "CNES" not in df.columns:
+        return df
+
+    df["CNES"] = pd.to_numeric(
+        df["CNES"],
+        errors="coerce"
+    )
+
+    df = df.dropna(
+        subset=["CNES"]
+    )
+
+    if df.empty:
+        return pd.DataFrame()
+
+    # =====================================================
+    # COLUNAS IMPORTANTES PARA HOSPITAIS
+    # =====================================================
+
+    colunas_importantes = [
+
+        "CNES",
+
+        "UF",
+        "MUNICIPIO",
+
+        "NOME_ESTABELECIMENTO",
+        "RAZAO_SOCIAL",
+
+        "DS_TIPO_UNIDADE",
+
+        "MOTIVO_DESABILITACAO",
+
+        "NO_LOGRADOURO",
+        "NU_ENDERECO",
+        "NO_COMPLEMENTO",
+        "NO_BAIRRO",
+        "CO_CEP",
+    ]
+
+    colunas_existentes = [
+        coluna
+        for coluna in colunas_importantes
+        if coluna in df.columns
+    ]
+
+    df = df[
+        colunas_existentes
+    ]
+
+    # =====================================================
+    # AGREGAÇÃO
+    # =====================================================
+
+    agregacoes = {}
+
+    for coluna in df.columns:
+
+        if coluna == "CNES":
+            continue
+
+        agregacoes[coluna] = "first"
+
+    # =====================================================
+    # CONSOLIDAÇÃO POR CNES
+    # =====================================================
+
+    df = (
+        df
+        .groupby(
+            "CNES",
+            as_index=False,
+            sort=False
+        )
+        .agg(agregacoes)
+    )
+
+    # =====================================================
+    # ORDENAÇÃO
+    # =====================================================
+
+    if "NOME_ESTABELECIMENTO" in df.columns:
+
+        df = df.sort_values(
+            by="NOME_ESTABELECIMENTO",
+            na_position="last"
+        )
+
+    return df.reset_index(
+        drop=True
+    )
+
+
+# =========================================================
+# VIEW
+# =========================================================
+
 class HospitaisView:
 
-    # =========================================================
+    # =====================================================
     # RENDER PRINCIPAL
-    # =========================================================
+    # =====================================================
 
     def render(self, model):
 
-        # =====================================================
+        # =================================================
         # CSS
-        # =====================================================
+        # =================================================
 
         self._aplicar_estilos()
 
-        # =====================================================
-        # CARREGAMENTO DOS DADOS
-        # =====================================================
+        # =================================================
+        # ORACLE
+        # =================================================
 
         try:
-            df = model.listar_dados()
+
+            df_bruto = model.listar_dados()
 
         except Exception as e:
 
             st.error(
-                "Erro ao carregar os dados hospitalares do Oracle."
+                "Erro ao carregar os dados hospitalares no Oracle."
             )
 
             st.exception(e)
 
             return
 
-        if df is None or df.empty:
+        if df_bruto is None or df_bruto.empty:
 
             st.warning(
                 "Nenhum dado hospitalar foi encontrado no Oracle."
@@ -43,1348 +167,1794 @@ class HospitaisView:
 
             return
 
-        # =====================================================
-        # NORMALIZAÇÃO DAS COLUNAS
-        # =====================================================
+        # =================================================
+        # CONSOLIDAÇÃO
+        # =================================================
 
-        df.columns = [
-            str(coluna).strip().upper()
-            for coluna in df.columns
-        ]
+        try:
 
-        # =====================================================
-        # CONVERSÃO NUMÉRICA
-        # =====================================================
-
-        colunas_numericas = [
-            "COD_IBGE",
-            "COD_UF",
-            "POPULACAO_ESTIMADA",
-
-            "INTERNACOES_JAN_2025",
-            "INTERNACOES_FEV_2025",
-            "INTERNACOES_MAR_2025",
-            "INTERNACOES_ABR_2025",
-            "INTERNACOES_MAI_2025",
-            "INTERNACOES_JUN_2025",
-            "INTERNACOES_JUL_2025",
-            "INTERNACOES_AGO_2025",
-            "INTERNACOES_SET_2025",
-            "INTERNACOES_OUT_2025",
-            "INTERNACOES_NOV_2025",
-            "INTERNACOES_DEZ_2025",
-
-            "INTERNACOES_TOTAL_2025",
-
-            "LEITOS_EXISTENTES",
-            "LEITOS_SUS",
-
-            "UTI_TOTAL_EXIST",
-            "UTI_TOTAL_SUS",
-
-            "UTI_ADULTO_EXIST",
-            "UTI_ADULTO_SUS",
-
-            "UTI_PEDIATRICO_EXIST",
-            "UTI_PEDIATRICO_SUS",
-
-            "UTI_NEONATAL_EXIST",
-            "UTI_NEONATAL_SUS",
-
-            "UTI_QUEIMADO_EXIST",
-            "UTI_QUEIMADO_SUS",
-
-            "UTI_CORONARIANA_EXIST",
-            "UTI_CORONARIANA_SUS",
-        ]
-
-        for coluna in colunas_numericas:
-
-            if coluna in df.columns:
-
-                df[coluna] = pd.to_numeric(
-                    df[coluna],
-                    errors="coerce"
-                ).fillna(0)
-
-        # =====================================================
-        # FILTROS
-        # =====================================================
-
-        df_filtrado = self._render_filtros(df)
-
-        # =====================================================
-        # CABEÇALHO
-        # =====================================================
-
-        self._render_cabecalho()
-
-        # =====================================================
-        # DOWNLOAD
-        # =====================================================
-
-        csv_data = df_filtrado.to_csv(
-            index=False
-        ).encode("utf-8")
-
-        st.download_button(
-            label="📥 Exportar Dados Filtrados",
-            data=csv_data,
-            file_name="dados_hospitalares_filtrados.csv",
-            mime="text/csv",
-            use_container_width=True,
-            key="btn_exportar_hospitais",
-        )
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # =====================================================
-        # INDICADORES
-        # =====================================================
-
-        self._render_indicadores(
-            df_filtrado
-        )
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # =====================================================
-        # GRÁFICOS PRINCIPAIS
-        # =====================================================
-
-        self._render_graficos(
-            df_filtrado
-        )
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # =====================================================
-        # DISTRIBUIÇÃO GEOGRÁFICA
-        # =====================================================
-
-        self._render_distribuicao_geografica(
-            df_filtrado
-        )
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # =====================================================
-        # TABELA DE MUNICÍPIOS
-        # =====================================================
-
-        self._render_tabela(
-            df_filtrado
-        )
-
-    # =========================================================
-    # CSS
-    # =========================================================
-
-    def _aplicar_estilos(self):
-
-        st.markdown(
-            """
-            <style>
-
-            .hospital-card {
-
-                background:
-                    linear-gradient(
-                        145deg,
-                        rgba(18, 24, 38, 0.92),
-                        rgba(26, 16, 47, 0.92)
-                    );
-
-                border:
-                    1px solid
-                    rgba(168, 85, 247, 0.16);
-
-                border-radius: 16px;
-
-                padding: 20px;
-
-                box-shadow:
-                    0 8px 32px
-                    rgba(0, 0, 0, 0.30);
-
-                min-height: 125px;
-
-            }
-
-            .hospital-card-title {
-
-                color: #9ca3af;
-
-                font-size: 14px;
-
-                font-weight: 600;
-
-                margin-bottom: 5px;
-
-            }
-
-            .hospital-card-value {
-
-                color: #ffffff;
-
-                font-size: 27px;
-
-                font-weight: 800;
-
-                margin: 0;
-
-            }
-
-            .hospital-card-sub {
-
-                color: #9ca3af;
-
-                font-size: 12px;
-
-                font-weight: 600;
-
-                margin-top: 4px;
-
-            }
-
-            .hospital-section {
-
-                color: #ffffff;
-
-                font-size: 20px;
-
-                font-weight: 700;
-
-                margin-bottom: 12px;
-
-            }
-
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    # =========================================================
-    # FILTROS
-    # =========================================================
-
-    def _render_filtros(self, df):
-
-        with st.sidebar:
-
-            st.header("🎛️ Filtros Avançados")
-
-            df_filtrado = df.copy()
-
-            # =================================================
-            # REGIÃO
-            # =================================================
-
-            # A TB_GERAL não possui REGIAO.
-            # Criamos a região a partir da UF.
-
-            mapa_regioes = {
-
-                "AC": "Norte",
-                "AP": "Norte",
-                "AM": "Norte",
-                "PA": "Norte",
-                "RO": "Norte",
-                "RR": "Norte",
-                "TO": "Norte",
-
-                "AL": "Nordeste",
-                "BA": "Nordeste",
-                "CE": "Nordeste",
-                "MA": "Nordeste",
-                "PB": "Nordeste",
-                "PE": "Nordeste",
-                "PI": "Nordeste",
-                "RN": "Nordeste",
-                "SE": "Nordeste",
-
-                "DF": "Centro-Oeste",
-                "GO": "Centro-Oeste",
-                "MT": "Centro-Oeste",
-                "MS": "Centro-Oeste",
-
-                "ES": "Sudeste",
-                "MG": "Sudeste",
-                "RJ": "Sudeste",
-                "SP": "Sudeste",
-
-                "PR": "Sul",
-                "RS": "Sul",
-                "SC": "Sul",
-            }
-
-            if "UF" in df_filtrado.columns:
-
-                df_filtrado["_REGIAO"] = (
-                    df_filtrado["UF"]
-                    .astype(str)
-                    .str.upper()
-                    .map(mapa_regioes)
-                )
-
-                regioes = sorted(
-                    df_filtrado["_REGIAO"]
-                    .dropna()
-                    .unique()
-                )
-
-                regiao = st.selectbox(
-                    "Região:",
-                    ["TODAS"] + regioes,
-                    key="hospital_regiao",
-                )
-
-                if regiao != "TODAS":
-
-                    df_filtrado = df_filtrado[
-                        df_filtrado["_REGIAO"]
-                        == regiao
-                    ]
-
-            # =================================================
-            # UF
-            # =================================================
-
-            if "UF" in df_filtrado.columns:
-
-                ufs = sorted(
-                    df_filtrado["UF"]
-                    .dropna()
-                    .astype(str)
-                    .unique()
-                )
-
-                uf = st.selectbox(
-                    "UF:",
-                    ["TODAS"] + ufs,
-                    key="hospital_uf",
-                )
-
-                if uf != "TODAS":
-
-                    df_filtrado = df_filtrado[
-                        df_filtrado["UF"]
-                        .astype(str)
-                        == uf
-                    ]
-
-            # =================================================
-            # MUNICÍPIO
-            # =================================================
-
-            if "MUNICIPIO" in df_filtrado.columns:
-
-                municipios = sorted(
-                    df_filtrado["MUNICIPIO"]
-                    .dropna()
-                    .astype(str)
-                    .unique()
-                )
-
-                municipio = st.selectbox(
-                    "Município:",
-                    ["TODOS"] + municipios,
-                    key="hospital_municipio",
-                )
-
-                if municipio != "TODOS":
-
-                    df_filtrado = df_filtrado[
-                        df_filtrado["MUNICIPIO"]
-                        .astype(str)
-                        == municipio
-                    ]
-
-            # =================================================
-            # BUSCA
-            # =================================================
-
-            busca = st.text_input(
-                "Buscar Município:",
-                placeholder="Digite o nome do município...",
-                key="hospital_busca",
+            df = consolidar_dados_hospitais(
+                df_bruto
             )
 
-            if busca and "MUNICIPIO" in df_filtrado.columns:
+        except Exception as e:
 
-                df_filtrado = df_filtrado[
-                    df_filtrado["MUNICIPIO"]
-                    .astype(str)
-                    .str.contains(
-                        busca,
-                        case=False,
-                        na=False,
-                    )
-                ]
+            st.error(
+                "Erro ao processar os dados hospitalares."
+            )
 
-            # =================================================
-            # LIMPAR FILTROS
-            # =================================================
+            st.exception(e)
 
-            if st.button(
-                "🔄 Recarregar dados",
-                use_container_width=True,
-            ):
-
-                st.cache_data.clear()
-                st.rerun()
-
-        return df_filtrado
-
-    # =========================================================
-    # CABEÇALHO
-    # =========================================================
-
-    def _render_cabecalho(self):
-
-        st.markdown(
-            """
-            <div style="
-                margin-bottom: 20px;
-            ">
-
-                <h1 style="
-                    margin: 0;
-                    font-size: 32px;
-                    font-weight: 800;
-                    color: #ffffff;
-                ">
-
-                    🏥 Painel de
-                    <span style="
-                        color: #a855f7;
-                    ">
-                        Hospitais
-                    </span>
-
-                </h1>
-
-                <p style="
-                    margin: 6px 0 0 0;
-                    font-size: 15px;
-                    color: #9ca3af;
-                ">
-
-                    Monitoramento de infraestrutura
-                    hospitalar, leitos, UTIs e
-                    internações por município.
-
-                </p>
-
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    # =========================================================
-    # INDICADORES
-    # =========================================================
-
-    def _render_indicadores(self, df):
+            return
 
         if df.empty:
 
-            total_municipios = 0
-            populacao = 0
-            internacoes = 0
-            leitos = 0
-            leitos_sus = 0
-            uti = 0
-
-        else:
-
-            total_municipios = (
-                df["COD_IBGE"].nunique()
-                if "COD_IBGE" in df.columns
-                else len(df)
+            st.warning(
+                "Nenhum hospital válido foi encontrado."
             )
 
-            populacao = (
-                int(df["POPULACAO_ESTIMADA"].sum())
-                if "POPULACAO_ESTIMADA" in df.columns
-                else 0
-            )
+            return
 
-            internacoes = (
-                int(df["INTERNACOES_TOTAL_2025"].sum())
-                if "INTERNACOES_TOTAL_2025" in df.columns
-                else 0
-            )
+        # =================================================
+        # CABEÇALHO
+        # =================================================
 
-            leitos = (
-                int(df["LEITOS_EXISTENTES"].sum())
-                if "LEITOS_EXISTENTES" in df.columns
-                else 0
-            )
-
-            leitos_sus = (
-                int(df["LEITOS_SUS"].sum())
-                if "LEITOS_SUS" in df.columns
-                else 0
-            )
-
-            uti = (
-                int(df["UTI_TOTAL_EXIST"].sum())
-                if "UTI_TOTAL_EXIST" in df.columns
-                else 0
-            )
-
-        col1, col2, col3, col4, col5, col6 = st.columns(
-            6,
-            gap="medium",
+        self._render_cabecalho(
+            df
         )
 
-        # =====================================================
-        # MUNICÍPIOS
-        # =====================================================
+        st.write("")
 
-        with col1:
+        # =================================================
+        # INDICADORES
+        # =================================================
 
-            self._card(
-                "Municípios",
-                total_municipios,
-                "Municípios analisados",
-                "🏙️",
-                "#a855f7",
-            )
-
-        # =====================================================
-        # POPULAÇÃO
-        # =====================================================
-
-        with col2:
-
-            self._card(
-                "População",
-                populacao,
-                "População estimada",
-                "👥",
-                "#3b82f6",
-            )
-
-        # =====================================================
-        # INTERNAÇÕES
-        # =====================================================
-
-        with col3:
-
-            self._card(
-                "Internações",
-                internacoes,
-                "Total em 2025",
-                "🏥",
-                "#8b5cf6",
-            )
-
-        # =====================================================
-        # LEITOS
-        # =====================================================
-
-        with col4:
-
-            self._card(
-                "Leitos Totais",
-                leitos,
-                "Capacidade cadastrada",
-                "🛏️",
-                "#06b6d4",
-            )
-
-        # =====================================================
-        # LEITOS SUS
-        # =====================================================
-
-        with col5:
-
-            percentual_sus = (
-                leitos_sus / leitos * 100
-                if leitos > 0
-                else 0
-            )
-
-            self._card(
-                "Leitos SUS",
-                leitos_sus,
-                f"{percentual_sus:.1f}% dos leitos",
-                "🤝",
-                "#10b981",
-            )
-
-        # =====================================================
-        # UTI
-        # =====================================================
-
-        with col6:
-
-            self._card(
-                "UTIs",
-                uti,
-                "UTI total cadastrada",
-                "🚨",
-                "#ef4444",
-            )
-
-    # =========================================================
-    # CARD
-    # =========================================================
-
-    def _card(
-        self,
-        titulo,
-        valor,
-        subtitulo,
-        icone,
-        cor,
-    ):
-
-        valor_formatado = (
-            f"{int(valor):,}"
-            .replace(",", ".")
+        metricas = self._calcular_metricas(
+            df
         )
 
-        st.markdown(
+        self._render_kpis(
+            metricas
+        )
+
+        st.write("")
+
+        # =================================================
+        # GRÁFICOS
+        # =================================================
+
+        self._render_graficos(
+            df
+        )
+
+        st.write("")
+
+        # =================================================
+        # TABELA
+        # =================================================
+
+        self._render_tabela(
+            df
+        )
+
+    # =====================================================
+    # CABEÇALHO
+    # =====================================================
+
+    def _render_cabecalho(self, df):
+
+        quantidade = len(df)
+
+        st.html(
             f"""
-            <div class="hospital-card">
+            <div class="page-header">
 
-                <div style="
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-start;
-                ">
+                <div class="header-icon">
+                    🏥
+                </div>
 
-                    <div>
+                <div class="header-content">
 
-                        <div class="hospital-card-title">
-                            {titulo}
-                        </div>
-
-                        <div class="hospital-card-value">
-                            {valor_formatado}
-                        </div>
-
-                        <div class="hospital-card-sub">
-                            {subtitulo}
-                        </div>
-
+                    <div class="header-eyebrow">
+                        VITTA VISION • REDE HOSPITALAR
                     </div>
 
-                    <div style="
-                        background:
-                            linear-gradient(
-                                135deg,
-                                {cor},
-                                {cor}CC
-                            );
+                    <div class="header-title">
+                        Painel de Hospitais
+                    </div>
 
-                        border-radius: 12px;
+                    <div class="header-description">
+                        Monitoramento dos estabelecimentos hospitalares
+                        e distribuição da rede de atendimento.
+                    </div>
 
-                        padding: 10px;
+                </div>
 
-                        font-size: 20px;
-                    ">
+                <div class="header-counter">
 
-                        {icone}
+                    <div class="header-counter-value">
+                        {quantidade:,}
+                    </div>
 
+                    <div class="header-counter-label">
+                        HOSPITAIS
                     </div>
 
                 </div>
 
             </div>
-            """,
-            unsafe_allow_html=True,
+            """.replace(",", ".")
         )
 
-    # =========================================================
-    # GRÁFICOS
-    # =========================================================
+    # =====================================================
+    # MÉTRICAS
+    # =====================================================
 
-    def _render_graficos(self, df):
+    def _calcular_metricas(self, df):
 
-        col1, col2 = st.columns(
-            [1, 1.4],
-            gap="medium",
-        )
+        total_hospitais = len(df)
 
-        # =====================================================
-        # GRÁFICO 1 — LEITOS SUS VS NÃO SUS
-        # =====================================================
+        # =================================================
+        # HOSPITAIS ATIVOS
+        # =================================================
 
-        with col1:
+        if "MOTIVO_DESABILITACAO" in df.columns:
 
-            st.markdown(
-                '<div class="hospital-section">'
-                '🛏️ Leitos SUS vs Não SUS'
-                '</div>',
-                unsafe_allow_html=True,
+            motivo = (
+                df["MOTIVO_DESABILITACAO"]
+                .fillna("")
+                .astype(str)
+                .str.strip()
             )
 
-            if df.empty:
-
-                st.info(
-                    "Nenhum dado disponível."
-                )
-
-            else:
-
-                total_leitos = (
-                    int(
-                        df["LEITOS_EXISTENTES"].sum()
-                    )
-                    if "LEITOS_EXISTENTES" in df.columns
-                    else 0
-                )
-
-                leitos_sus = (
-                    int(
-                        df["LEITOS_SUS"].sum()
-                    )
-                    if "LEITOS_SUS" in df.columns
-                    else 0
-                )
-
-                leitos_outros = max(
-                    0,
-                    total_leitos - leitos_sus,
-                )
-
-                df_pie = pd.DataFrame(
-                    {
-                        "Categoria": [
-                            "Leitos SUS",
-                            "Não SUS",
-                        ],
-                        "Quantidade": [
-                            leitos_sus,
-                            leitos_outros,
-                        ],
-                    }
-                )
-
-                fig = go.Figure(
-                    go.Pie(
-                        labels=df_pie["Categoria"],
-                        values=df_pie["Quantidade"],
-                        hole=0.65,
-                        marker=dict(
-                            colors=[
-                                "#10b981",
-                                "#3b82f6",
-                            ]
-                        ),
-                        textinfo="percent",
-                        textfont=dict(
-                            color="white",
-                            size=13,
-                        ),
-                        hovertemplate=(
-                            "<b>%{label}</b><br>"
-                            "%{value:,} leitos"
-                            "<extra></extra>"
-                        ),
-                    )
-                )
-
-                fig.update_layout(
-                    height=320,
-                    margin=dict(
-                        l=10,
-                        r=10,
-                        t=10,
-                        b=10,
-                    ),
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    font=dict(
-                        color="#ffffff"
-                    ),
-                    legend=dict(
-                        orientation="h",
-                        yanchor="bottom",
-                        y=-0.15,
-                        xanchor="center",
-                        x=0.5,
-                    ),
-                )
-
-                st.plotly_chart(
-                    fig,
-                    use_container_width=True,
-                    config={
-                        "displayModeBar": False
-                    },
-                )
-
-        # =====================================================
-        # GRÁFICO 2 — TOP MUNICÍPIOS POR LEITOS
-        # =====================================================
-
-        with col2:
-
-            st.markdown(
-                '<div class="hospital-section">'
-                '🏆 Municípios com Mais Leitos'
-                '</div>',
-                unsafe_allow_html=True,
-            )
-
-            if df.empty:
-
-                st.info(
-                    "Nenhum dado disponível."
-                )
-
-            else:
-
-                ranking = (
-                    df.groupby(
-                        [
-                            "MUNICIPIO",
-                            "UF",
-                        ],
-                        as_index=False,
-                    )[
-                        "LEITOS_EXISTENTES"
-                    ]
-                    .sum()
-                    .sort_values(
-                        "LEITOS_EXISTENTES",
-                        ascending=False,
-                    )
-                    .head(10)
-                )
-
-                ranking["LOCAL"] = (
-                    ranking["MUNICIPIO"]
-                    + " - "
-                    + ranking["UF"]
-                )
-
-                fig = go.Figure()
-
-                fig.add_trace(
-                    go.Bar(
-                        x=ranking[
-                            "LEITOS_EXISTENTES"
-                        ],
-                        y=ranking["LOCAL"],
-                        orientation="h",
-                        text=[
-                            f"{int(v):,}".replace(
-                                ",",
-                                ".",
-                            )
-                            for v in ranking[
-                                "LEITOS_EXISTENTES"
-                            ]
-                        ],
-                        textposition="outside",
-                        cliponaxis=False,
-                        marker=dict(
-                            color="#8b5cf6"
-                        ),
-                    )
-                )
-
-                fig.update_layout(
-                    height=320,
-                    margin=dict(
-                        l=10,
-                        r=60,
-                        t=10,
-                        b=10,
-                    ),
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    font=dict(
-                        color="#ffffff"
-                    ),
-                    xaxis=dict(
-                        visible=False
-                    ),
-                    yaxis=dict(
-                        autorange="reversed",
-                        showgrid=False,
-                    ),
-                    showlegend=False,
-                )
-
-                st.plotly_chart(
-                    fig,
-                    use_container_width=True,
-                    config={
-                        "displayModeBar": False
-                    },
-                )
-
-        # =====================================================
-        # INTERNAÇÕES POR MÊS
-        # =====================================================
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        st.markdown(
-            '<div class="hospital-section">'
-            '📈 Evolução Mensal das Internações'
-            '</div>',
-            unsafe_allow_html=True,
-        )
-
-        meses = [
-            ("JAN", "Janeiro"),
-            ("FEV", "Fevereiro"),
-            ("MAR", "Março"),
-            ("ABR", "Abril"),
-            ("MAI", "Maio"),
-            ("JUN", "Junho"),
-            ("JUL", "Julho"),
-            ("AGO", "Agosto"),
-            ("SET", "Setembro"),
-            ("OUT", "Outubro"),
-            ("NOV", "Novembro"),
-            ("DEZ", "Dezembro"),
-        ]
-
-        valores = []
-        nomes = []
-
-        for abreviacao, nome in meses:
-
-            coluna = (
-                f"INTERNACOES_{abreviacao}_2025"
-            )
-
-            if coluna in df.columns:
-
-                valores.append(
-                    int(df[coluna].sum())
-                )
-
-                nomes.append(nome)
-
-        if valores:
-
-            fig = go.Figure()
-
-            fig.add_trace(
-                go.Scatter(
-                    x=nomes,
-                    y=valores,
-                    mode="lines+markers",
-                    line=dict(
-                        color="#a855f7",
-                        width=3,
-                    ),
-                    marker=dict(
-                        size=7,
-                        color="#c084fc",
-                    ),
-                    fill="tozeroy",
-                    fillcolor=(
-                        "rgba(168,85,247,0.12)"
-                    ),
-                    hovertemplate=(
-                        "<b>%{x}</b><br>"
-                        "Internações: %{y:,}"
-                        "<extra></extra>"
-                    ),
-                )
-            )
-
-            fig.update_layout(
-                height=330,
-                margin=dict(
-                    l=20,
-                    r=20,
-                    t=20,
-                    b=20,
-                ),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(
-                    color="#ffffff"
-                ),
-                xaxis=dict(
-                    showgrid=False,
-                ),
-                yaxis=dict(
-                    gridcolor=(
-                        "rgba(255,255,255,0.05)"
-                    ),
-                    zeroline=False,
-                ),
-                showlegend=False,
-            )
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True,
-                config={
-                    "displayModeBar": False
-                },
+            hospitais_ativos = int(
+                motivo.eq("").sum()
             )
 
         else:
 
-            st.info(
-                "Não existem dados mensais disponíveis."
+            hospitais_ativos = total_hospitais
+
+        # =================================================
+        # MUNICÍPIOS
+        # =================================================
+
+        if "MUNICIPIO" in df.columns:
+
+            municipios = (
+                df["MUNICIPIO"]
+                .dropna()
+                .astype(str)
+                .str.strip()
+                .replace("", pd.NA)
+                .nunique()
             )
 
-    # =========================================================
-    # DISTRIBUIÇÃO GEOGRÁFICA
-    # =========================================================
+        else:
 
-    def _render_distribuicao_geografica(self, df):
+            municipios = 0
 
-        st.markdown(
-            '<div class="hospital-section">'
-            '🗺️ Distribuição Geográfica'
-            '</div>',
-            unsafe_allow_html=True,
+        # =================================================
+        # TIPOS DE UNIDADE
+        # =================================================
+
+        if "DS_TIPO_UNIDADE" in df.columns:
+
+            tipos_unidade = (
+                df["DS_TIPO_UNIDADE"]
+                .dropna()
+                .astype(str)
+                .str.strip()
+                .replace("", pd.NA)
+                .nunique()
+            )
+
+        else:
+
+            tipos_unidade = 0
+
+        return {
+
+            "total_hospitais":
+                total_hospitais,
+
+            "hospitais_ativos":
+                hospitais_ativos,
+
+            "municipios":
+                municipios,
+
+            "tipos_unidade":
+                tipos_unidade,
+        }
+
+    # =====================================================
+    # KPIs
+    # =====================================================
+
+    def _render_kpis(self, metricas):
+
+        total_hospitais = (
+            metricas["total_hospitais"]
         )
+
+        hospitais_ativos = (
+            metricas["hospitais_ativos"]
+        )
+
+        municipios = (
+            metricas["municipios"]
+        )
+
+        tipos_unidade = (
+            metricas["tipos_unidade"]
+        )
+
+        # =================================================
+        # 4 CARDS
+        # =================================================
+
+        col1, col2, col3, col4 = st.columns(
+            4,
+            gap="medium"
+        )
+
+        # =================================================
+        # HOSPITAIS
+        # =================================================
+
+        with col1:
+
+            self._render_kpi_card(
+                icone="🏥",
+                titulo="Hospitais",
+                valor=(
+                    f"{total_hospitais:,}"
+                    .replace(",", ".")
+                ),
+                descricao="Estabelecimentos cadastrados",
+                detalhe="REDE HOSPITALAR",
+                classe="blue"
+            )
+
+        # =================================================
+        # HOSPITAIS ATIVOS
+        # =================================================
+
+        with col2:
+
+            self._render_kpi_card(
+                icone="🛡️",
+                titulo="Hospitais Ativos",
+                valor=(
+                    f"{hospitais_ativos:,}"
+                    .replace(",", ".")
+                ),
+                descricao="Estabelecimentos habilitados",
+                detalhe="STATUS ATIVO",
+                classe="cyan"
+            )
+
+        # =================================================
+        # MUNICÍPIOS
+        # =================================================
+
+        with col3:
+
+            self._render_kpi_card(
+                icone="📍",
+                titulo="Municípios",
+                valor=(
+                    f"{municipios:,}"
+                    .replace(",", ".")
+                ),
+                descricao="Municípios com hospitais cadastrados",
+                detalhe="ABRANGÊNCIA",
+                classe="purple"
+            )
+
+        # =================================================
+        # TIPOS DE UNIDADE
+        # =================================================
+
+        with col4:
+
+            self._render_kpi_card(
+                icone="🏨",
+                titulo="Tipos de Unidade",
+                valor=(
+                    f"{tipos_unidade:,}"
+                    .replace(",", ".")
+                ),
+                descricao="Categorias de estabelecimentos",
+                detalhe="CLASSIFICAÇÃO",
+                classe="violet"
+            )
+
+    # =====================================================
+    # CARD KPI
+    # =====================================================
+
+    def _render_kpi_card(
+        self,
+        icone,
+        titulo,
+        valor,
+        descricao,
+        detalhe,
+        classe
+    ):
+
+        st.html(
+            f"""
+            <div class="kpi-card {classe}">
+
+                <div class="kpi-glow"></div>
+
+                <div class="kpi-top">
+
+                    <div class="kpi-icon">
+                        {icone}
+                    </div>
+
+                    <div class="kpi-tag">
+                        {detalhe}
+                    </div>
+
+                </div>
+
+                <div class="kpi-title">
+                    {titulo}
+                </div>
+
+                <div class="kpi-value">
+                    {valor}
+                </div>
+
+                <div class="kpi-description">
+                    {descricao}
+                </div>
+
+                <div class="kpi-line"></div>
+
+            </div>
+            """
+        )
+
+    # =====================================================
+    # GRÁFICOS
+    # =====================================================
+
+    def _render_graficos(
+        self,
+        df
+    ):
 
         if df.empty:
 
             st.info(
-                "Nenhum dado disponível."
+                "Não há dados suficientes para gerar os gráficos."
             )
 
             return
 
-        mapa_regioes = {
+        # =================================================
+        # TÍTULO
+        # =================================================
 
-            "AC": "Norte",
-            "AP": "Norte",
-            "AM": "Norte",
-            "PA": "Norte",
-            "RO": "Norte",
-            "RR": "Norte",
-            "TO": "Norte",
+        st.html(
+            """
+            <div class="section-heading">
 
-            "AL": "Nordeste",
-            "BA": "Nordeste",
-            "CE": "Nordeste",
-            "MA": "Nordeste",
-            "PB": "Nordeste",
-            "PE": "Nordeste",
-            "PI": "Nordeste",
-            "RN": "Nordeste",
-            "SE": "Nordeste",
+                <div class="section-heading-icon">
+                    📊
+                </div>
 
-            "DF": "Centro-Oeste",
-            "GO": "Centro-Oeste",
-            "MT": "Centro-Oeste",
-            "MS": "Centro-Oeste",
+                <div>
 
-            "ES": "Sudeste",
-            "MG": "Sudeste",
-            "RJ": "Sudeste",
-            "SP": "Sudeste",
+                    <div class="section-heading-title">
+                        Visão Analítica
+                    </div>
 
-            "PR": "Sul",
-            "RS": "Sul",
-            "SC": "Sul",
-        }
+                    <div class="section-heading-subtitle">
+                        Distribuição e classificação dos hospitais
+                    </div>
 
-        df_geo = df.copy()
+                </div>
 
-        df_geo["REGIAO"] = (
-            df_geo["UF"]
-            .astype(str)
-            .str.upper()
-            .map(mapa_regioes)
+            </div>
+            """
         )
 
-        regiao = (
-            df_geo.groupby(
-                "REGIAO",
-                as_index=False,
-            )
-            .agg(
-                Municipios=(
-                    "COD_IBGE",
-                    "nunique",
-                ),
-                Leitos=(
-                    "LEITOS_EXISTENTES",
-                    "sum",
-                ),
-                Leitos_SUS=(
-                    "LEITOS_SUS",
-                    "sum",
-                ),
-                Internacoes=(
-                    "INTERNACOES_TOTAL_2025",
-                    "sum",
-                ),
-            )
-            .sort_values(
-                "Leitos",
-                ascending=False,
-            )
+        col_esquerda, col_direita = st.columns(
+            2,
+            gap="medium"
         )
 
-        col1, col2 = st.columns(2)
+        # =================================================
+        # HOSPITAIS POR MUNICÍPIO
+        # =================================================
 
-        # =====================================================
-        # LEITOS POR REGIÃO
-        # =====================================================
+        with col_esquerda:
 
-        with col1:
+            st.html(
+                """
+                <div class="chart-box">
 
-            fig = go.Figure()
+                    <div class="chart-title">
+                        Hospitais por Município
+                    </div>
 
-            fig.add_trace(
-                go.Bar(
-                    x=regiao["REGIAO"],
-                    y=regiao["Leitos"],
-                    text=[
-                        f"{int(v):,}".replace(
-                            ",",
-                            ".",
-                        )
-                        for v in regiao["Leitos"]
-                    ],
-                    textposition="outside",
-                    marker=dict(
-                        color="#3b82f6"
-                    ),
+                    <div class="chart-subtitle">
+                        Municípios com maior quantidade de hospitais
+                    </div>
+
+                </div>
+                """
+            )
+
+            if "MUNICIPIO" in df.columns:
+
+                dados_municipio = (
+                    df["MUNICIPIO"]
+                    .fillna("Não informado")
+                    .astype(str)
+                    .str.strip()
+                    .replace("", "Não informado")
+                    .value_counts()
+                    .sort_values()
+                    .tail(10)
                 )
-            )
 
-            fig.update_layout(
-                title=dict(
-                    text="Leitos por Região",
-                    font=dict(
-                        color="#ffffff",
-                        size=16,
-                    ),
-                ),
-                height=330,
-                margin=dict(
-                    l=20,
-                    r=20,
-                    t=55,
-                    b=20,
-                ),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(
-                    color="#ffffff"
-                ),
-                yaxis=dict(
-                    showgrid=False,
-                    visible=False,
-                ),
-                xaxis=dict(
-                    showgrid=False,
-                ),
-                showlegend=False,
-            )
+                fig_municipio = go.Figure(
+                    go.Bar(
+                        x=dados_municipio.values,
+                        y=dados_municipio.index,
+                        orientation="h",
 
-            st.plotly_chart(
-                fig,
-                use_container_width=True,
-                config={
-                    "displayModeBar": False
-                },
-            )
+                        text=[
+                            f"{valor:,}".replace(
+                                ",",
+                                "."
+                            )
+                            for valor in dados_municipio.values
+                        ],
 
-        # =====================================================
-        # INTERNAÇÕES POR REGIÃO
-        # =====================================================
+                        textposition="outside",
 
-        with col2:
+                        marker=dict(
+                            color="#8B5CF6",
+                            line=dict(
+                                width=0
+                            )
+                        ),
 
-            fig = go.Figure()
-
-            fig.add_trace(
-                go.Bar(
-                    x=regiao["REGIAO"],
-                    y=regiao["Internacoes"],
-                    text=[
-                        f"{int(v):,}".replace(
-                            ",",
-                            ".",
+                        hovertemplate=(
+                            "<b>%{y}</b>"
+                            "<br>"
+                            "Hospitais: %{x:,}"
+                            "<extra></extra>"
                         )
-                        for v in regiao[
-                            "Internacoes"
-                        ]
-                    ],
-                    textposition="outside",
-                    marker=dict(
-                        color="#10b981"
-                    ),
+                    )
                 )
-            )
 
-            fig.update_layout(
-                title=dict(
-                    text="Internações por Região",
+                fig_municipio.update_layout(
+
+                    paper_bgcolor="rgba(0,0,0,0)",
+
+                    plot_bgcolor="rgba(0,0,0,0)",
+
                     font=dict(
-                        color="#ffffff",
-                        size=16,
+                        color="#E5E7EB",
+                        size=12
                     ),
-                ),
-                height=330,
-                margin=dict(
-                    l=20,
-                    r=20,
-                    t=55,
-                    b=20,
-                ),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(
-                    color="#ffffff"
-                ),
-                yaxis=dict(
-                    showgrid=False,
-                    visible=False,
-                ),
-                xaxis=dict(
-                    showgrid=False,
-                ),
-                showlegend=False,
+
+                    margin=dict(
+                        l=20,
+                        r=60,
+                        t=15,
+                        b=20
+                    ),
+
+                    height=330,
+
+                    xaxis=dict(
+                        showgrid=True,
+                        gridcolor="rgba(99,102,241,0.10)",
+                        zeroline=False,
+                        showticklabels=False
+                    ),
+
+                    yaxis=dict(
+                        showgrid=False,
+                        autorange="reversed",
+
+                        tickfont=dict(
+                            color="#C7D2FE",
+                            size=11
+                        )
+                    ),
+
+                    showlegend=False,
+
+                    bargap=0.35
+                )
+
+                st.plotly_chart(
+                    fig_municipio,
+                    width="stretch",
+                    config={
+                        "displayModeBar": False,
+                        "responsive": True
+                    }
+                )
+
+            else:
+
+                st.info(
+                    "Não há dados de município disponíveis."
+                )
+
+        # =================================================
+        # HOSPITAIS POR TIPO
+        # =================================================
+
+        with col_direita:
+
+            st.html(
+                """
+                <div class="chart-box">
+
+                    <div class="chart-title">
+                        Hospitais por Tipo de Unidade
+                    </div>
+
+                    <div class="chart-subtitle">
+                        Principais categorias de estabelecimentos
+                    </div>
+
+                </div>
+                """
             )
 
-            st.plotly_chart(
-                fig,
-                use_container_width=True,
-                config={
-                    "displayModeBar": False
-                },
-            )
+            if "DS_TIPO_UNIDADE" in df.columns:
 
-    # =========================================================
+                dados_tipo = (
+                    df["DS_TIPO_UNIDADE"]
+                    .fillna("Não informado")
+                    .astype(str)
+                    .str.strip()
+                    .replace("", "Não informado")
+                    .value_counts()
+                    .sort_values()
+                    .tail(10)
+                )
+
+                fig_tipo = go.Figure(
+                    go.Bar(
+                        x=dados_tipo.values,
+                        y=dados_tipo.index,
+                        orientation="h",
+
+                        text=[
+                            f"{valor:,}".replace(
+                                ",",
+                                "."
+                            )
+                            for valor in dados_tipo.values
+                        ],
+
+                        textposition="outside",
+
+                        marker=dict(
+                            color="#3B82F6",
+                            line=dict(
+                                width=0
+                            )
+                        ),
+
+                        hovertemplate=(
+                            "<b>%{y}</b>"
+                            "<br>"
+                            "Hospitais: %{x:,}"
+                            "<extra></extra>"
+                        )
+                    )
+                )
+
+                fig_tipo.update_layout(
+
+                    paper_bgcolor="rgba(0,0,0,0)",
+
+                    plot_bgcolor="rgba(0,0,0,0)",
+
+                    font=dict(
+                        color="#E5E7EB",
+                        size=12
+                    ),
+
+                    margin=dict(
+                        l=20,
+                        r=65,
+                        t=15,
+                        b=20
+                    ),
+
+                    height=330,
+
+                    xaxis=dict(
+                        showgrid=True,
+                        gridcolor="rgba(99,102,241,0.10)",
+                        zeroline=False,
+                        showticklabels=False
+                    ),
+
+                    yaxis=dict(
+                        showgrid=False,
+                        autorange="reversed",
+
+                        tickfont=dict(
+                            color="#C7D2FE",
+                            size=11
+                        )
+                    ),
+
+                    showlegend=False,
+
+                    bargap=0.35
+                )
+
+                st.plotly_chart(
+                    fig_tipo,
+                    width="stretch",
+                    config={
+                        "displayModeBar": False,
+                        "responsive": True
+                    }
+                )
+
+            else:
+
+                st.info(
+                    "Não há dados de tipo de unidade disponíveis."
+                )
+
+    # =====================================================
     # TABELA
-    # =========================================================
+    # =====================================================
 
     def _render_tabela(self, df):
 
-        st.markdown(
-            '<div class="hospital-section">'
-            '📋 Relação de Municípios'
-            '</div>',
-            unsafe_allow_html=True,
+        st.html(
+            """
+            <div class="section-heading">
+
+                <div class="section-heading-icon">
+                    📋
+                </div>
+
+                <div>
+
+                    <div class="section-heading-title">
+                        Unidades Hospitalares
+                    </div>
+
+                    <div class="section-heading-subtitle">
+                        Detalhamento dos estabelecimentos hospitalares
+                    </div>
+
+                </div>
+
+            </div>
+            """
         )
 
         if df.empty:
 
             st.warning(
-                "Nenhum município encontrado "
-                "com os filtros selecionados."
+                "Nenhum hospital encontrado."
             )
 
             return
 
-        colunas = [
+        # =================================================
+        # LIMITE
+        # =================================================
+
+        limite = 500
+
+        # =================================================
+        # COLUNAS
+        # =================================================
+
+        colunas_exibir = [
+
+            "NOME_ESTABELECIMENTO",
+
+            "CNES",
+
             "MUNICIPIO",
+
             "UF",
-            "POPULACAO_ESTIMADA",
-            "INTERNACOES_TOTAL_2025",
-            "LEITOS_EXISTENTES",
-            "LEITOS_SUS",
-            "UTI_TOTAL_EXIST",
-            "UTI_TOTAL_SUS",
+
+            "DS_TIPO_UNIDADE",
+
+            "NO_LOGRADOURO",
+
+            "NU_ENDERECO",
+
+            "NO_COMPLEMENTO",
+
+            "NO_BAIRRO",
+
+            "CO_CEP",
         ]
 
-        colunas = [
+        colunas_exibir = [
             coluna
-            for coluna in colunas
+            for coluna in colunas_exibir
             if coluna in df.columns
         ]
 
-        tabela = df[colunas].copy()
+        df_tabela = df[
+            colunas_exibir
+        ].copy()
 
-        tabela = tabela.sort_values(
-            by="LEITOS_EXISTENTES"
-            if "LEITOS_EXISTENTES" in tabela.columns
-            else tabela.columns[0],
-            ascending=False,
+        # =================================================
+        # CONVERSÃO CNES
+        # =================================================
+
+        if "CNES" in df_tabela.columns:
+
+            df_tabela["CNES"] = (
+                pd.to_numeric(
+                    df_tabela["CNES"],
+                    errors="coerce"
+                )
+                .fillna(0)
+                .astype(int)
+            )
+
+        # =================================================
+        # ORDENAÇÃO
+        # =================================================
+
+        if "NOME_ESTABELECIMENTO" in df_tabela.columns:
+
+            df_tabela = df_tabela.sort_values(
+                by="NOME_ESTABELECIMENTO",
+                na_position="last"
+            )
+
+        # =================================================
+        # TOTAL
+        # =================================================
+
+        total_registros = len(
+            df_tabela
         )
 
-        nomes = {
-            "MUNICIPIO":
-                "Município",
-
-            "UF":
-                "UF",
-
-            "POPULACAO_ESTIMADA":
-                "População",
-
-            "INTERNACOES_TOTAL_2025":
-                "Internações 2025",
-
-            "LEITOS_EXISTENTES":
-                "Leitos Totais",
-
-            "LEITOS_SUS":
-                "Leitos SUS",
-
-            "UTI_TOTAL_EXIST":
-                "UTI Total",
-
-            "UTI_TOTAL_SUS":
-                "UTI SUS",
-        }
-
-        tabela = tabela.rename(
-            columns=nomes
+        df_tabela = df_tabela.head(
+            limite
         )
+
+        # =================================================
+        # CONFIGURAÇÃO
+        # =================================================
 
         configuracao = {}
 
-        if "Município" in tabela.columns:
+        if "NOME_ESTABELECIMENTO" in df_tabela.columns:
 
             configuracao[
-                "Município"
+                "NOME_ESTABELECIMENTO"
             ] = st.column_config.TextColumn(
-                "Município",
-                width="large",
+                "Hospital / Estabelecimento",
+                width="large"
             )
 
-        if "UF" in tabela.columns:
+        if "CNES" in df_tabela.columns:
+
+            configuracao[
+                "CNES"
+            ] = st.column_config.NumberColumn(
+                "CNES",
+                format="%d"
+            )
+
+        if "MUNICIPIO" in df_tabela.columns:
+
+            configuracao[
+                "MUNICIPIO"
+            ] = st.column_config.TextColumn(
+                "Município",
+                width="medium"
+            )
+
+        if "UF" in df_tabela.columns:
 
             configuracao[
                 "UF"
             ] = st.column_config.TextColumn(
                 "UF",
-                width="small",
+                width="small"
             )
 
-        for coluna in [
-            "População",
-            "Internações 2025",
-            "Leitos Totais",
-            "Leitos SUS",
-            "UTI Total",
-            "UTI SUS",
-        ]:
+        if "DS_TIPO_UNIDADE" in df_tabela.columns:
 
-            if coluna in tabela.columns:
+            configuracao[
+                "DS_TIPO_UNIDADE"
+            ] = st.column_config.TextColumn(
+                "Tipo de Unidade",
+                width="medium"
+            )
 
-                configuracao[
-                    coluna
-                ] = st.column_config.NumberColumn(
-                    coluna,
-                    format="%d",
-                )
+        if "NO_LOGRADOURO" in df_tabela.columns:
+
+            configuracao[
+                "NO_LOGRADOURO"
+            ] = st.column_config.TextColumn(
+                "Logradouro",
+                width="large"
+            )
+
+        if "NU_ENDERECO" in df_tabela.columns:
+
+            configuracao[
+                "NU_ENDERECO"
+            ] = st.column_config.TextColumn(
+                "Número",
+                width="small"
+            )
+
+        if "NO_COMPLEMENTO" in df_tabela.columns:
+
+            configuracao[
+                "NO_COMPLEMENTO"
+            ] = st.column_config.TextColumn(
+                "Complemento",
+                width="medium"
+            )
+
+        if "NO_BAIRRO" in df_tabela.columns:
+
+            configuracao[
+                "NO_BAIRRO"
+            ] = st.column_config.TextColumn(
+                "Bairro",
+                width="medium"
+            )
+
+        if "CO_CEP" in df_tabela.columns:
+
+            configuracao[
+                "CO_CEP"
+            ] = st.column_config.TextColumn(
+                "CEP",
+                width="small"
+            )
+
+        # =================================================
+        # DATAFRAME
+        # =================================================
 
         st.dataframe(
-            tabela,
+            df_tabela,
             column_config=configuracao,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
-            height=450,
+            height=520
         )
 
-        st.caption(
-            f"Exibindo {len(tabela):,} municípios."
-            .replace(",", ".")
+        # =================================================
+        # RODAPÉ
+        # =================================================
+
+        if total_registros > limite:
+
+            st.html(
+                f"""
+                <div class="table-footer">
+
+                    <span>
+                        Exibindo os
+                        <strong>{limite}</strong>
+                        primeiros hospitais.
+                    </span>
+
+                    <span class="table-total">
+                        Total:
+                        {total_registros:,}
+                    </span>
+
+                </div>
+                """.replace(
+                    ",",
+                    "."
+                )
+            )
+
+        else:
+
+            st.html(
+                f"""
+                <div class="table-footer">
+
+                    <span>
+                        Exibindo todos os hospitais encontrados.
+                    </span>
+
+                    <span class="table-total">
+                        {total_registros:,} hospital(is)
+                    </span>
+
+                </div>
+                """.replace(
+                    ",",
+                    "."
+                )
+            )
+
+    # =====================================================
+    # SOMA SEGURA
+    # =====================================================
+
+    @staticmethod
+    def _soma(
+        df,
+        coluna
+    ):
+
+        if coluna not in df.columns:
+            return 0
+
+        serie = pd.to_numeric(
+            df[coluna],
+            errors="coerce"
+        )
+
+        return int(
+            serie
+            .fillna(0)
+            .sum()
+        )
+
+    # =====================================================
+    # ESTILOS
+    # =====================================================
+
+    def _aplicar_estilos(self):
+
+        st.html(
+            """
+            <style>
+
+            /* =================================================
+               CABEÇALHO
+               ================================================= */
+
+            .page-header {
+
+                position: relative;
+
+                display: flex;
+
+                align-items: center;
+
+                gap: 22px;
+
+                padding: 28px;
+
+                margin-bottom: 24px;
+
+                overflow: hidden;
+
+                border-radius: 20px;
+
+                background:
+                    linear-gradient(
+                        135deg,
+                        rgba(37, 99, 235, 0.22),
+                        rgba(99, 102, 241, 0.20),
+                        rgba(15, 23, 42, 0.96)
+                    );
+
+                border:
+                    1px solid
+                    rgba(99, 102, 241, 0.22);
+
+                box-shadow:
+                    0 12px 40px
+                    rgba(37, 99, 235, 0.12);
+
+            }
+
+
+            .page-header::after {
+
+                content: "";
+
+                position: absolute;
+
+                width: 220px;
+
+                height: 220px;
+
+                right: -100px;
+
+                top: -120px;
+
+                border-radius: 50%;
+
+                background:
+                    rgba(124, 58, 237, 0.18);
+
+                filter: blur(5px);
+
+            }
+
+
+            .header-icon {
+
+                width: 68px;
+
+                height: 68px;
+
+                display: flex;
+
+                align-items: center;
+
+                justify-content: center;
+
+                flex-shrink: 0;
+
+                border-radius: 18px;
+
+                font-size: 34px;
+
+                background:
+                    linear-gradient(
+                        135deg,
+                        #2563EB,
+                        #7C3AED
+                    );
+
+                box-shadow:
+                    0 10px 30px
+                    rgba(79, 70, 229, 0.35);
+
+            }
+
+
+            .header-content {
+
+                position: relative;
+
+                z-index: 1;
+
+                min-width: 0;
+
+                flex: 1;
+
+            }
+
+
+            .header-eyebrow {
+
+                color: #818CF8;
+
+                font-size: 11px;
+
+                font-weight: 800;
+
+                letter-spacing: 1.5px;
+
+                margin-bottom: 5px;
+
+            }
+
+
+            .header-title {
+
+                color: #FFFFFF;
+
+                font-size: 30px;
+
+                line-height: 1.15;
+
+                font-weight: 800;
+
+                letter-spacing: -0.7px;
+
+            }
+
+
+            .header-description {
+
+                margin-top: 8px;
+
+                color: #A5B4FC;
+
+                font-size: 14px;
+
+                line-height: 1.5;
+
+                max-width: 780px;
+
+            }
+
+
+            .header-counter {
+
+                position: relative;
+
+                z-index: 1;
+
+                min-width: 110px;
+
+                padding-left: 20px;
+
+                text-align: right;
+
+                border-left:
+                    1px solid
+                    rgba(255,255,255,0.08);
+
+            }
+
+
+            .header-counter-value {
+
+                color: #FFFFFF;
+
+                font-size: 26px;
+
+                font-weight: 850;
+
+                line-height: 1.1;
+
+            }
+
+
+            .header-counter-label {
+
+                color: #64748B;
+
+                font-size: 9px;
+
+                font-weight: 800;
+
+                letter-spacing: 1.2px;
+
+                margin-top: 4px;
+
+            }
+
+
+            /* =================================================
+               KPI
+               ================================================= */
+
+            .kpi-card {
+
+                position: relative;
+
+                min-height: 190px;
+
+                padding: 20px;
+
+                overflow: hidden;
+
+                border-radius: 18px;
+
+                background:
+                    linear-gradient(
+                        145deg,
+                        rgba(30, 41, 59, 0.98),
+                        rgba(15, 23, 42, 0.98)
+                    );
+
+                border:
+                    1px solid
+                    rgba(255,255,255,0.07);
+
+                box-shadow:
+                    0 10px 30px
+                    rgba(0,0,0,0.22);
+
+                transition:
+                    transform 0.2s ease,
+                    box-shadow 0.2s ease;
+
+            }
+
+
+            .kpi-card:hover {
+
+                transform:
+                    translateY(-3px);
+
+                box-shadow:
+                    0 16px 40px
+                    rgba(37,99,235,0.15);
+
+            }
+
+
+            .kpi-glow {
+
+                position: absolute;
+
+                width: 120px;
+
+                height: 120px;
+
+                right: -55px;
+
+                top: -55px;
+
+                border-radius: 50%;
+
+                opacity: 0.18;
+
+                filter: blur(2px);
+
+            }
+
+
+            .kpi-card.blue {
+
+                border-top:
+                    3px solid #2563EB;
+
+            }
+
+
+            .kpi-card.blue .kpi-glow {
+
+                background: #2563EB;
+
+            }
+
+
+            .kpi-card.cyan {
+
+                border-top:
+                    3px solid #06B6D4;
+
+            }
+
+
+            .kpi-card.cyan .kpi-glow {
+
+                background: #06B6D4;
+
+            }
+
+
+            .kpi-card.purple {
+
+                border-top:
+                    3px solid #7C3AED;
+
+            }
+
+
+            .kpi-card.purple .kpi-glow {
+
+                background: #7C3AED;
+
+            }
+
+
+            .kpi-card.violet {
+
+                border-top:
+                    3px solid #A855F7;
+
+            }
+
+
+            .kpi-card.violet .kpi-glow {
+
+                background: #A855F7;
+
+            }
+
+
+            .kpi-top {
+
+                position: relative;
+
+                z-index: 1;
+
+                display: flex;
+
+                align-items: center;
+
+                justify-content: space-between;
+
+                margin-bottom: 15px;
+
+            }
+
+
+            .kpi-icon {
+
+                width: 43px;
+
+                height: 43px;
+
+                display: flex;
+
+                align-items: center;
+
+                justify-content: center;
+
+                border-radius: 12px;
+
+                font-size: 22px;
+
+                background:
+                    rgba(99,102,241,0.10);
+
+            }
+
+
+            .kpi-tag {
+
+                color: #64748B;
+
+                font-size: 9px;
+
+                font-weight: 800;
+
+                letter-spacing: 1px;
+
+            }
+
+
+            .kpi-title {
+
+                position: relative;
+
+                z-index: 1;
+
+                color: #CBD5E1;
+
+                font-size: 13px;
+
+                font-weight: 600;
+
+            }
+
+
+            .kpi-value {
+
+                position: relative;
+
+                z-index: 1;
+
+                color: #FFFFFF;
+
+                font-size: 32px;
+
+                line-height: 1.1;
+
+                font-weight: 850;
+
+                margin-top: 4px;
+
+                letter-spacing: -1px;
+
+            }
+
+
+            .kpi-description {
+
+                position: relative;
+
+                z-index: 1;
+
+                color: #94A3B8;
+
+                font-size: 11px;
+
+                margin-top: 5px;
+
+            }
+
+
+            .kpi-line {
+
+                position: absolute;
+
+                left: 20px;
+
+                right: 20px;
+
+                bottom: 13px;
+
+                height: 2px;
+
+                border-radius: 10px;
+
+                background:
+                    linear-gradient(
+                        90deg,
+                        rgba(37,99,235,0.7),
+                        rgba(139,92,246,0.7)
+                    );
+
+                opacity: 0.45;
+
+            }
+
+
+            /* =================================================
+               SEÇÕES
+               ================================================= */
+
+            .section-heading {
+
+                display: flex;
+
+                align-items: center;
+
+                gap: 13px;
+
+                margin:
+                    8px 0 15px 0;
+
+            }
+
+
+            .section-heading-icon {
+
+                width: 38px;
+
+                height: 38px;
+
+                display: flex;
+
+                align-items: center;
+
+                justify-content: center;
+
+                border-radius: 11px;
+
+                background:
+                    linear-gradient(
+                        135deg,
+                        rgba(37,99,235,0.15),
+                        rgba(124,58,237,0.15)
+                    );
+
+                border:
+                    1px solid
+                    rgba(99,102,241,0.15);
+
+                font-size: 19px;
+
+            }
+
+
+            .section-heading-title {
+
+                color: #F8FAFC;
+
+                font-size: 18px;
+
+                font-weight: 750;
+
+            }
+
+
+            .section-heading-subtitle {
+
+                color: #64748B;
+
+                font-size: 11px;
+
+                margin-top: 2px;
+
+            }
+
+
+            /* =================================================
+               CARDS DE RESUMO
+               ================================================= */
+
+            .uti-card {
+
+                min-height: 145px;
+
+                padding: 18px;
+
+                border-radius: 16px;
+
+                background:
+                    rgba(15,23,42,0.92);
+
+                border:
+                    1px solid
+                    rgba(255,255,255,0.07);
+
+                position: relative;
+
+                overflow: hidden;
+
+            }
+
+
+            .uti-glow {
+
+                position: absolute;
+
+                width: 80px;
+
+                height: 80px;
+
+                right: -35px;
+
+                bottom: -35px;
+
+                border-radius: 50%;
+
+                opacity: 0.13;
+
+            }
+
+
+            .uti-card::before {
+
+                content: "";
+
+                position: absolute;
+
+                left: 0;
+
+                top: 0;
+
+                bottom: 0;
+
+                width: 4px;
+
+            }
+
+
+            .uti-card.blue::before {
+                background: #2563EB;
+            }
+
+            .uti-card.cyan::before {
+                background: #06B6D4;
+            }
+
+            .uti-card.purple::before {
+                background: #7C3AED;
+            }
+
+            .uti-card.violet::before {
+                background: #A855F7;
+            }
+
+
+            .uti-card.blue .uti-glow {
+                background: #2563EB;
+            }
+
+            .uti-card.cyan .uti-glow {
+                background: #06B6D4;
+            }
+
+            .uti-card.purple .uti-glow {
+                background: #7C3AED;
+            }
+
+            .uti-card.violet .uti-glow {
+                background: #A855F7;
+            }
+
+
+            .uti-icon {
+
+                position: relative;
+
+                z-index: 1;
+
+                font-size: 21px;
+
+                margin-bottom: 12px;
+
+            }
+
+
+            .uti-name {
+
+                position: relative;
+
+                z-index: 1;
+
+                color: #CBD5E1;
+
+                font-size: 11px;
+
+                font-weight: 700;
+
+            }
+
+
+            .uti-value {
+
+                position: relative;
+
+                z-index: 1;
+
+                color: #FFFFFF;
+
+                font-size: 27px;
+
+                font-weight: 800;
+
+                margin-top: 5px;
+
+            }
+
+
+            .uti-label {
+
+                position: relative;
+
+                z-index: 1;
+
+                color: #64748B;
+
+                font-size: 8px;
+
+                font-weight: 800;
+
+                letter-spacing: 1px;
+
+                margin-top: 2px;
+
+            }
+
+
+            /* =================================================
+               GRÁFICOS
+               ================================================= */
+
+            .chart-box {
+
+                margin-bottom: -3px;
+
+            }
+
+
+            .chart-title {
+
+                color: #F1F5F9;
+
+                font-size: 15px;
+
+                font-weight: 750;
+
+                margin-top: 5px;
+
+            }
+
+
+            .chart-subtitle {
+
+                color: #64748B;
+
+                font-size: 11px;
+
+                margin-top: 2px;
+
+            }
+
+
+            [data-testid="stPlotlyChart"] {
+
+                background:
+                    linear-gradient(
+                        145deg,
+                        rgba(15,23,42,0.72),
+                        rgba(30,41,59,0.60)
+                    );
+
+                border:
+                    1px solid
+                    rgba(99,102,241,0.10);
+
+                border-radius: 16px;
+
+                padding: 7px;
+
+                box-shadow:
+                    0 8px 30px
+                    rgba(0,0,0,0.14);
+
+            }
+
+
+            /* =================================================
+               TABELA
+               ================================================= */
+
+            [data-testid="stDataFrame"] {
+
+                border-radius: 16px;
+
+                overflow: hidden;
+
+                border:
+                    1px solid
+                    rgba(99,102,241,0.13);
+
+                box-shadow:
+                    0 8px 30px
+                    rgba(0,0,0,0.18);
+
+            }
+
+
+            .table-footer {
+
+                display: flex;
+
+                justify-content: space-between;
+
+                align-items: center;
+
+                gap: 10px;
+
+                padding: 10px 3px;
+
+                color: #64748B;
+
+                font-size: 11px;
+
+            }
+
+
+            .table-total {
+
+                color: #818CF8;
+
+                font-weight: 700;
+
+            }
+
+
+            /* =================================================
+               RESPONSIVIDADE
+               ================================================= */
+
+            @media (max-width: 900px) {
+
+                .header-title {
+
+                    font-size: 24px;
+
+                }
+
+                .page-header {
+
+                    padding: 20px;
+
+                }
+
+                .header-counter {
+
+                    display: none;
+
+                }
+
+            }
+
+            </style>
+            """
         )

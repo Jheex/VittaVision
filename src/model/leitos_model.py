@@ -16,9 +16,6 @@ class LeitosModel:
     # =========================================================
 
     def listar_leitos(self, limite=1000):
-        """
-        Retorna os registros de leitos.
-        """
 
         return self.db.consultar_tabela(
             self.tabela,
@@ -30,9 +27,6 @@ class LeitosModel:
     # =========================================================
 
     def total_registros(self):
-        """
-        Retorna a quantidade total de registros.
-        """
 
         query = f"""
             SELECT COUNT(*) AS TOTAL
@@ -51,9 +45,6 @@ class LeitosModel:
     # =========================================================
 
     def total_leitos(self):
-        """
-        Retorna o total de leitos existentes.
-        """
 
         query = f"""
             SELECT
@@ -73,9 +64,6 @@ class LeitosModel:
     # =========================================================
 
     def total_leitos_sus(self):
-        """
-        Retorna o total de leitos SUS.
-        """
 
         query = f"""
             SELECT
@@ -95,9 +83,6 @@ class LeitosModel:
     # =========================================================
 
     def total_leitos_uti(self):
-        """
-        Retorna o total de leitos de UTI existentes.
-        """
 
         query = f"""
             SELECT
@@ -117,9 +102,6 @@ class LeitosModel:
     # =========================================================
 
     def leitos_por_uf(self):
-        """
-        Retorna o total de leitos agrupado por UF.
-        """
 
         query = f"""
             SELECT
@@ -137,9 +119,6 @@ class LeitosModel:
     # =========================================================
 
     def leitos_por_municipio(self):
-        """
-        Retorna o total de leitos agrupado por município.
-        """
 
         query = f"""
             SELECT
@@ -157,9 +136,6 @@ class LeitosModel:
     # =========================================================
 
     def leitos_por_regiao(self):
-        """
-        Retorna o total de leitos agrupado por região.
-        """
 
         query = f"""
             SELECT
@@ -178,19 +154,39 @@ class LeitosModel:
 
     def dados_para_view(self):
         """
-        Retorna os dados de TB_LEITOS no formato
-        esperado pela LeitosView.
+        Retorna os dados já consolidados por CNES.
+
+        OTIMIZAÇÃO:
+        ---------------------------------------------------------
+        A versão anterior buscava todos os registros da tabela
+        e depois fazia o GROUP BY no Pandas.
+
+        Agora a consolidação numérica é realizada pelo Oracle
+        usando funções analíticas:
+
+            SUM(...) OVER (PARTITION BY CNES)
+
+        Dessa forma o Oracle calcula os totais por hospital
+        durante uma única consulta.
+
+        ROW_NUMBER() mantém somente um registro cadastral
+        por CNES.
+
+        Importante:
+        ---------------------------------------------------------
+        Não existe GROUP BY nesta consulta e não existe
+        agregação dentro de outra agregação.
+
+        Portanto não ocorre o ORA-00935:
+        "group function is nested too deeply".
         """
 
         query = f"""
             SELECT
-                ID_LEITO,
-                COMP,
                 REGIAO,
                 UF,
                 CO_IBGE,
                 MUNICIPIO,
-                MOTIVO_DESABILITACAO,
                 CNES,
                 NOME_ESTABELECIMENTO,
                 RAZAO_SOCIAL,
@@ -199,30 +195,140 @@ class LeitosModel:
                 DS_TIPO_UNIDADE,
                 NATUREZA_JURIDICA,
                 DESC_NATUREZA_JURIDICA,
-                NO_LOGRADOURO,
-                NU_ENDERECO,
-                NO_COMPLEMENTO,
-                NO_BAIRRO,
-                CO_CEP,
-                NU_TELEFONE,
-                NO_EMAIL,
+
                 LEITOS_EXISTENTES,
                 LEITOS_SUS,
+
                 UTI_TOTAL_EXIST,
                 UTI_TOTAL_SUS,
+
                 UTI_ADULTO_EXIST,
                 UTI_ADULTO_SUS,
+
                 UTI_PEDIATRICO_EXIST,
                 UTI_PEDIATRICO_SUS,
+
                 UTI_NEONATAL_EXIST,
                 UTI_NEONATAL_SUS,
+
                 UTI_QUEIMADO_EXIST,
                 UTI_QUEIMADO_SUS,
+
                 UTI_CORONARIANA_EXIST,
-                UTI_CORONARIANA_SUS,
-                DT_IMPORTACAO
-            FROM {self.tabela}
-            ORDER BY NOME_ESTABELECIMENTO
+                UTI_CORONARIANA_SUS
+
+            FROM
+            (
+                SELECT
+
+                    REGIAO,
+                    UF,
+                    CO_IBGE,
+                    MUNICIPIO,
+                    CNES,
+                    NOME_ESTABELECIMENTO,
+                    RAZAO_SOCIAL,
+                    TP_GESTAO,
+                    CO_TIPO_UNIDADE,
+                    DS_TIPO_UNIDADE,
+                    NATUREZA_JURIDICA,
+                    DESC_NATUREZA_JURIDICA,
+
+                    SUM(
+                        NVL(LEITOS_EXISTENTES, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS LEITOS_EXISTENTES,
+
+                    SUM(
+                        NVL(LEITOS_SUS, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS LEITOS_SUS,
+
+                    SUM(
+                        NVL(UTI_TOTAL_EXIST, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_TOTAL_EXIST,
+
+                    SUM(
+                        NVL(UTI_TOTAL_SUS, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_TOTAL_SUS,
+
+                    SUM(
+                        NVL(UTI_ADULTO_EXIST, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_ADULTO_EXIST,
+
+                    SUM(
+                        NVL(UTI_ADULTO_SUS, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_ADULTO_SUS,
+
+                    SUM(
+                        NVL(UTI_PEDIATRICO_EXIST, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_PEDIATRICO_EXIST,
+
+                    SUM(
+                        NVL(UTI_PEDIATRICO_SUS, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_PEDIATRICO_SUS,
+
+                    SUM(
+                        NVL(UTI_NEONATAL_EXIST, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_NEONATAL_EXIST,
+
+                    SUM(
+                        NVL(UTI_NEONATAL_SUS, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_NEONATAL_SUS,
+
+                    SUM(
+                        NVL(UTI_QUEIMADO_EXIST, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_QUEIMADO_EXIST,
+
+                    SUM(
+                        NVL(UTI_QUEIMADO_SUS, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_QUEIMADO_SUS,
+
+                    SUM(
+                        NVL(UTI_CORONARIANA_EXIST, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_CORONARIANA_EXIST,
+
+                    SUM(
+                        NVL(UTI_CORONARIANA_SUS, 0)
+                    ) OVER (
+                        PARTITION BY CNES
+                    ) AS UTI_CORONARIANA_SUS,
+
+                    ROW_NUMBER() OVER (
+                        PARTITION BY CNES
+                        ORDER BY CNES
+                    ) AS RN
+
+                FROM {self.tabela}
+
+                WHERE CNES IS NOT NULL
+            )
+
+            WHERE RN = 1
         """
 
         return self.db.executar_query_sql(query)
@@ -232,9 +338,6 @@ class LeitosModel:
     # =========================================================
 
     def buscar_municipio(self, municipio):
-        """
-        Busca registros pelo nome do município.
-        """
 
         if not municipio:
             return pd.DataFrame()
@@ -268,9 +371,6 @@ class LeitosModel:
     # =========================================================
 
     def buscar_estabelecimento(self, nome):
-        """
-        Busca registros pelo nome do estabelecimento.
-        """
 
         if not nome:
             return pd.DataFrame()
@@ -305,9 +405,6 @@ class LeitosModel:
     # =========================================================
 
     def importar_csv(self, arquivo):
-        """
-        Importa um CSV diretamente para TB_LEITOS.
-        """
 
         if arquivo is None:
             raise ValueError(
@@ -332,6 +429,7 @@ class LeitosModel:
         ]
 
         colunas_esperadas = [
+
             "COMP",
             "REGIAO",
             "UF",
@@ -353,18 +451,25 @@ class LeitosModel:
             "CO_CEP",
             "NU_TELEFONE",
             "NO_EMAIL",
+
             "LEITOS_EXISTENTES",
             "LEITOS_SUS",
+
             "UTI_TOTAL_EXIST",
             "UTI_TOTAL_SUS",
+
             "UTI_ADULTO_EXIST",
             "UTI_ADULTO_SUS",
+
             "UTI_PEDIATRICO_EXIST",
             "UTI_PEDIATRICO_SUS",
+
             "UTI_NEONATAL_EXIST",
             "UTI_NEONATAL_SUS",
+
             "UTI_QUEIMADO_EXIST",
             "UTI_QUEIMADO_SUS",
+
             "UTI_CORONARIANA_EXIST",
             "UTI_CORONARIANA_SUS",
         ]
@@ -376,6 +481,7 @@ class LeitosModel:
         ]
 
         if faltantes:
+
             raise ValueError(
                 "O CSV não possui todas as colunas esperadas: "
                 + ", ".join(faltantes)
@@ -384,28 +490,37 @@ class LeitosModel:
         df = df[colunas_esperadas]
 
         colunas_numericas = [
+
             "COMP",
             "CO_IBGE",
             "CNES",
             "CO_TIPO_UNIDADE",
             "NATUREZA_JURIDICA",
+
             "LEITOS_EXISTENTES",
             "LEITOS_SUS",
+
             "UTI_TOTAL_EXIST",
             "UTI_TOTAL_SUS",
+
             "UTI_ADULTO_EXIST",
             "UTI_ADULTO_SUS",
+
             "UTI_PEDIATRICO_EXIST",
             "UTI_PEDIATRICO_SUS",
+
             "UTI_NEONATAL_EXIST",
             "UTI_NEONATAL_SUS",
+
             "UTI_QUEIMADO_EXIST",
             "UTI_QUEIMADO_SUS",
+
             "UTI_CORONARIANA_EXIST",
             "UTI_CORONARIANA_SUS",
         ]
 
         for coluna in colunas_numericas:
+
             df[coluna] = pd.to_numeric(
                 df[coluna],
                 errors="coerce"
@@ -423,9 +538,6 @@ class LeitosModel:
     # =========================================================
 
     def limpar_tabela(self):
-        """
-        Remove todos os registros da tabela.
-        """
 
         connection = None
         cursor = None

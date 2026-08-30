@@ -612,6 +612,57 @@ class HeaderComponent:
                     rgba(124, 58, 237, 0.40) !important;
             }
 
+            /* =====================================================
+            LOGO CLICÁVEL
+            ===================================================== */
+
+            .vitta-header-link {
+
+                display: block;
+
+                width: 100%;
+
+                height: 58px;
+
+                text-decoration: none !important;
+
+                color: inherit !important;
+
+                cursor: pointer;
+
+                border: none !important;
+
+                box-shadow: none !important;
+            }
+
+
+            .vitta-header-link:hover {
+
+                text-decoration: none !important;
+
+                color: inherit !important;
+
+                border: none !important;
+
+                box-shadow: none !important;
+            }
+
+
+            .vitta-header-link:visited {
+
+                text-decoration: none !important;
+
+                color: inherit !important;
+            }
+
+
+            .vitta-header-link:active {
+
+                text-decoration: none !important;
+
+                color: inherit !important;
+            }
+
 
             /* =====================================================
                LOGIN
@@ -927,20 +978,27 @@ class HeaderComponent:
 
                         st.html(
                             f"""
-                            <div class="vitta-header-logo">
+                            <a
+                                href="?page=Dashboard"
+                                class="vitta-header-link"
+                            >
 
-                                <img
-                                    src="{img_src}"
-                                    alt="VITTA Vision"
-                                />
+                                <div class="vitta-header-logo">
 
-                                <span
-                                    class="vitta-header-logo-text"
-                                >
-                                    VITTA VISION
-                                </span>
+                                    <img
+                                        src="{img_src}"
+                                        alt="VITTA Vision"
+                                    />
 
-                            </div>
+                                    <span
+                                        class="vitta-header-logo-text"
+                                    >
+                                        VITTA VISION
+                                    </span>
+
+                                </div>
+
+                            </a>
                             """
                         )
 

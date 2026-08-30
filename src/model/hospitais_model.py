@@ -4,11 +4,11 @@ import pandas as pd
 class HospitaisModel:
     """
     Model responsável pelo acesso aos dados hospitalares
-    armazenados na tabela TB_GERAL do Oracle.
+    armazenados na tabela TB_LEITOS do Oracle.
 
-    IMPORTANTE:
-    A TB_GERAL possui dados agregados por município.
-    Não possui CNES, nome de hospital ou coordenadas geográficas.
+    A consolidação dos registros por CNES é realizada
+    diretamente no Oracle para reduzir o volume de dados
+    transferido para o Python.
     """
 
     def __init__(self, db):
@@ -20,62 +20,177 @@ class HospitaisModel:
 
     def listar_dados(self):
         """
-        Retorna os dados completos da TB_GERAL.
+        Retorna os estabelecimentos hospitalares consolidados
+        diretamente no Oracle.
+
+        Em vez de retornar todas as linhas da TB_LEITOS,
+        o Oracle agrupa os registros por CNES e retorna
+        somente um registro por estabelecimento.
+
+        Isso reduz significativamente:
+        - dados transferidos do Oracle;
+        - processamento no Pandas;
+        - tempo de consolidação na View.
         """
 
         query = """
             SELECT
-                ID_GERAL,
-                COD_IBGE,
-                COD_UF,
-                UF,
-                MUNICIPIO,
-                POPULACAO_ESTIMADA,
 
-                INTERNACOES_JAN_2025,
-                INTERNACOES_FEV_2025,
-                INTERNACOES_MAR_2025,
-                INTERNACOES_ABR_2025,
-                INTERNACOES_MAI_2025,
-                INTERNACOES_JUN_2025,
-                INTERNACOES_JUL_2025,
-                INTERNACOES_AGO_2025,
-                INTERNACOES_SET_2025,
-                INTERNACOES_OUT_2025,
-                INTERNACOES_NOV_2025,
-                INTERNACOES_DEZ_2025,
+                CNES,
 
-                INTERNACOES_TOTAL_2025,
+                MAX(REGIAO)
+                    AS REGIAO,
 
-                LEITOS_EXISTENTES,
-                LEITOS_SUS,
+                MAX(UF)
+                    AS UF,
 
-                UTI_TOTAL_EXIST,
-                UTI_TOTAL_SUS,
+                MAX(CO_IBGE)
+                    AS CO_IBGE,
 
-                UTI_ADULTO_EXIST,
-                UTI_ADULTO_SUS,
+                MAX(MUNICIPIO)
+                    AS MUNICIPIO,
 
-                UTI_PEDIATRICO_EXIST,
-                UTI_PEDIATRICO_SUS,
+                MAX(MOTIVO_DESABILITACAO)
+                    AS MOTIVO_DESABILITACAO,
 
-                UTI_NEONATAL_EXIST,
-                UTI_NEONATAL_SUS,
+                MAX(NOME_ESTABELECIMENTO)
+                    AS NOME_ESTABELECIMENTO,
 
-                UTI_QUEIMADO_EXIST,
-                UTI_QUEIMADO_SUS,
+                MAX(RAZAO_SOCIAL)
+                    AS RAZAO_SOCIAL,
 
-                UTI_CORONARIANA_EXIST,
-                UTI_CORONARIANA_SUS,
+                MAX(TP_GESTAO)
+                    AS TP_GESTAO,
 
-                COMP_LEITOS
+                MAX(CO_TIPO_UNIDADE)
+                    AS CO_TIPO_UNIDADE,
 
-            FROM TB_GERAL
+                MAX(DS_TIPO_UNIDADE)
+                    AS DS_TIPO_UNIDADE,
 
-            ORDER BY MUNICIPIO
+                MAX(NATUREZA_JURIDICA)
+                    AS NATUREZA_JURIDICA,
+
+                MAX(DESC_NATUREZA_JURIDICA)
+                    AS DESC_NATUREZA_JURIDICA,
+
+                MAX(NO_LOGRADOURO)
+                    AS NO_LOGRADOURO,
+
+                MAX(NU_ENDERECO)
+                    AS NU_ENDERECO,
+
+                MAX(NO_COMPLEMENTO)
+                    AS NO_COMPLEMENTO,
+
+                MAX(NO_BAIRRO)
+                    AS NO_BAIRRO,
+
+                MAX(CO_CEP)
+                    AS CO_CEP,
+
+                MAX(NU_TELEFONE)
+                    AS NU_TELEFONE,
+
+                MAX(NO_EMAIL)
+                    AS NO_EMAIL,
+
+                NVL(
+                    SUM(LEITOS_EXISTENTES),
+                    0
+                ) AS LEITOS_EXISTENTES,
+
+                NVL(
+                    SUM(LEITOS_SUS),
+                    0
+                ) AS LEITOS_SUS,
+
+                NVL(
+                    SUM(UTI_TOTAL_EXIST),
+                    0
+                ) AS UTI_TOTAL_EXIST,
+
+                NVL(
+                    SUM(UTI_TOTAL_SUS),
+                    0
+                ) AS UTI_TOTAL_SUS,
+
+                NVL(
+                    SUM(UTI_ADULTO_EXIST),
+                    0
+                ) AS UTI_ADULTO_EXIST,
+
+                NVL(
+                    SUM(UTI_ADULTO_SUS),
+                    0
+                ) AS UTI_ADULTO_SUS,
+
+                NVL(
+                    SUM(UTI_PEDIATRICO_EXIST),
+                    0
+                ) AS UTI_PEDIATRICO_EXIST,
+
+                NVL(
+                    SUM(UTI_PEDIATRICO_SUS),
+                    0
+                ) AS UTI_PEDIATRICO_SUS,
+
+                NVL(
+                    SUM(UTI_NEONATAL_EXIST),
+                    0
+                ) AS UTI_NEONATAL_EXIST,
+
+                NVL(
+                    SUM(UTI_NEONATAL_SUS),
+                    0
+                ) AS UTI_NEONATAL_SUS,
+
+                NVL(
+                    SUM(UTI_QUEIMADO_EXIST),
+                    0
+                ) AS UTI_QUEIMADO_EXIST,
+
+                NVL(
+                    SUM(UTI_QUEIMADO_SUS),
+                    0
+                ) AS UTI_QUEIMADO_SUS,
+
+                NVL(
+                    SUM(UTI_CORONARIANA_EXIST),
+                    0
+                ) AS UTI_CORONARIANA_EXIST,
+
+                NVL(
+                    SUM(UTI_CORONARIANA_SUS),
+                    0
+                ) AS UTI_CORONARIANA_SUS,
+
+                MAX(DT_IMPORTACAO)
+                    AS DT_IMPORTACAO
+
+            FROM TB_LEITOS
+
+            WHERE CNES IS NOT NULL
+
+            GROUP BY CNES
+
+            ORDER BY NOME_ESTABELECIMENTO
         """
 
         return self.db.fetch_data(query)
+
+    # =========================================================
+    # DADOS PARA A VIEW
+    # =========================================================
+
+    def dados_para_view(self):
+        """
+        Retorna os dados necessários para a tela de Hospitais.
+
+        A consolidação já é realizada pelo Oracle.
+        """
+
+        return self.listar_dados()
 
     # =========================================================
     # INDICADORES
@@ -83,43 +198,90 @@ class HospitaisModel:
 
     def obter_indicadores(self):
         """
-        Calcula os indicadores diretamente no Oracle.
+        Calcula os principais indicadores hospitalares
+        diretamente no Oracle.
+
+        A consulta consolida primeiro por CNES para garantir
+        que os valores representem estabelecimentos únicos.
         """
 
         query = """
             SELECT
 
-                COUNT(DISTINCT COD_IBGE)
-                    AS TOTAL_MUNICIPIOS,
+                COUNT(*) AS TOTAL_HOSPITAIS,
 
-                NVL(SUM(POPULACAO_ESTIMADA), 0)
-                    AS POPULACAO_TOTAL,
+                SUM(
+                    CASE
+                        WHEN MOTIVO_DESABILITACAO IS NULL
+                        THEN 1
+                        ELSE 0
+                    END
+                ) AS HOSPITAIS_ATIVOS,
 
-                NVL(SUM(INTERNACOES_TOTAL_2025), 0)
-                    AS INTERNACOES_TOTAL,
+                NVL(
+                    SUM(LEITOS_EXISTENTES),
+                    0
+                ) AS LEITOS_TOTAIS,
 
-                NVL(SUM(LEITOS_EXISTENTES), 0)
-                    AS LEITOS_TOTAIS,
+                NVL(
+                    SUM(LEITOS_SUS),
+                    0
+                ) AS LEITOS_SUS,
 
-                NVL(SUM(LEITOS_SUS), 0)
-                    AS LEITOS_SUS,
+                NVL(
+                    SUM(UTI_TOTAL_EXIST),
+                    0
+                ) AS UTI_TOTAL,
 
-                NVL(SUM(UTI_TOTAL_EXIST), 0)
-                    AS UTI_TOTAL,
+                NVL(
+                    SUM(UTI_TOTAL_SUS),
+                    0
+                ) AS UTI_SUS
 
-                NVL(SUM(UTI_TOTAL_SUS), 0)
-                    AS UTI_SUS
+            FROM (
 
-            FROM TB_GERAL
+                SELECT
+
+                    CNES,
+
+                    MAX(MOTIVO_DESABILITACAO)
+                        AS MOTIVO_DESABILITACAO,
+
+                    NVL(
+                        SUM(LEITOS_EXISTENTES),
+                        0
+                    ) AS LEITOS_EXISTENTES,
+
+                    NVL(
+                        SUM(LEITOS_SUS),
+                        0
+                    ) AS LEITOS_SUS,
+
+                    NVL(
+                        SUM(UTI_TOTAL_EXIST),
+                        0
+                    ) AS UTI_TOTAL_EXIST,
+
+                    NVL(
+                        SUM(UTI_TOTAL_SUS),
+                        0
+                    ) AS UTI_TOTAL_SUS
+
+                FROM TB_LEITOS
+
+                WHERE CNES IS NOT NULL
+
+                GROUP BY CNES
+            )
         """
 
         df = self.db.fetch_data(query)
 
         if df.empty:
+
             return {
-                "total_municipios": 0,
-                "populacao_total": 0,
-                "internacoes_total": 0,
+                "total_hospitais": 0,
+                "hospitais_ativos": 0,
                 "leitos_totais": 0,
                 "leitos_sus": 0,
                 "uti_total": 0,
@@ -129,16 +291,12 @@ class HospitaisModel:
         linha = df.iloc[0]
 
         return {
-            "total_municipios": int(
-                linha["TOTAL_MUNICIPIOS"] or 0
+            "total_hospitais": int(
+                linha["TOTAL_HOSPITAIS"] or 0
             ),
 
-            "populacao_total": int(
-                linha["POPULACAO_TOTAL"] or 0
-            ),
-
-            "internacoes_total": int(
-                linha["INTERNACOES_TOTAL"] or 0
+            "hospitais_ativos": int(
+                linha["HOSPITAIS_ATIVOS"] or 0
             ),
 
             "leitos_totais": int(
@@ -159,77 +317,92 @@ class HospitaisModel:
         }
 
     # =========================================================
-    # MUNICÍPIOS POR UF
+    # HOSPITAIS POR REGIÃO
     # =========================================================
 
-    def municipios_por_uf(self):
-        """
-        Retorna a quantidade de municípios por UF.
-        """
+    def hospitais_por_regiao(self):
 
         query = """
             SELECT
-                UF,
-                COUNT(DISTINCT COD_IBGE) AS TOTAL
-            FROM TB_GERAL
-            WHERE UF IS NOT NULL
-            GROUP BY UF
+                REGIAO,
+                COUNT(DISTINCT CNES) AS TOTAL
+
+            FROM TB_LEITOS
+
+            WHERE
+                REGIAO IS NOT NULL
+                AND CNES IS NOT NULL
+
+            GROUP BY REGIAO
+
             ORDER BY TOTAL DESC
         """
 
         return self.db.fetch_data(query)
 
     # =========================================================
-    # INTERNAÇÕES POR MÊS
+    # HOSPITAIS POR UF
     # =========================================================
 
-    def internacoes_por_mes(self):
-        """
-        Retorna as internações mensais de 2025.
-
-        Os dados são provenientes diretamente
-        das colunas da TB_GERAL.
-        """
+    def hospitais_por_uf(self):
 
         query = """
             SELECT
-                NVL(SUM(INTERNACOES_JAN_2025), 0)
-                    AS JAN,
+                UF,
+                COUNT(DISTINCT CNES) AS TOTAL
 
-                NVL(SUM(INTERNACOES_FEV_2025), 0)
-                    AS FEV,
+            FROM TB_LEITOS
 
-                NVL(SUM(INTERNACOES_MAR_2025), 0)
-                    AS MAR,
+            WHERE
+                UF IS NOT NULL
+                AND CNES IS NOT NULL
 
-                NVL(SUM(INTERNACOES_ABR_2025), 0)
-                    AS ABR,
+            GROUP BY UF
 
-                NVL(SUM(INTERNACOES_MAI_2025), 0)
-                    AS MAI,
+            ORDER BY TOTAL DESC
+        """
 
-                NVL(SUM(INTERNACOES_JUN_2025), 0)
-                    AS JUN,
+        return self.db.fetch_data(query)
 
-                NVL(SUM(INTERNACOES_JUL_2025), 0)
-                    AS JUL,
+    # =========================================================
+    # LEITOS POR REGIÃO
+    # =========================================================
 
-                NVL(SUM(INTERNACOES_AGO_2025), 0)
-                    AS AGO,
+    def leitos_por_regiao(self):
 
-                NVL(SUM(INTERNACOES_SET_2025), 0)
-                    AS SET,
+        query = """
+            SELECT
+                REGIAO,
 
-                NVL(SUM(INTERNACOES_OUT_2025), 0)
-                    AS OUT,
+                NVL(
+                    SUM(LEITOS_EXISTENTES),
+                    0
+                ) AS LEITOS_EXISTENTES,
 
-                NVL(SUM(INTERNACOES_NOV_2025), 0)
-                    AS NOV,
+                NVL(
+                    SUM(LEITOS_SUS),
+                    0
+                ) AS LEITOS_SUS,
 
-                NVL(SUM(INTERNACOES_DEZ_2025), 0)
-                    AS DEZ
+                NVL(
+                    SUM(UTI_TOTAL_EXIST),
+                    0
+                ) AS UTI_TOTAL,
 
-            FROM TB_GERAL
+                NVL(
+                    SUM(UTI_TOTAL_SUS),
+                    0
+                ) AS UTI_SUS
+
+            FROM TB_LEITOS
+
+            WHERE
+                REGIAO IS NOT NULL
+                AND CNES IS NOT NULL
+
+            GROUP BY REGIAO
+
+            ORDER BY LEITOS_EXISTENTES DESC
         """
 
         return self.db.fetch_data(query)
@@ -239,23 +412,36 @@ class HospitaisModel:
     # =========================================================
 
     def leitos_por_uf(self):
-        """
-        Retorna leitos existentes e SUS por UF.
-        """
 
         query = """
             SELECT
                 UF,
 
-                NVL(SUM(LEITOS_EXISTENTES), 0)
-                    AS LEITOS_EXISTENTES,
+                NVL(
+                    SUM(LEITOS_EXISTENTES),
+                    0
+                ) AS LEITOS_EXISTENTES,
 
-                NVL(SUM(LEITOS_SUS), 0)
-                    AS LEITOS_SUS
+                NVL(
+                    SUM(LEITOS_SUS),
+                    0
+                ) AS LEITOS_SUS,
 
-            FROM TB_GERAL
+                NVL(
+                    SUM(UTI_TOTAL_EXIST),
+                    0
+                ) AS UTI_TOTAL,
 
-            WHERE UF IS NOT NULL
+                NVL(
+                    SUM(UTI_TOTAL_SUS),
+                    0
+                ) AS UTI_SUS
+
+            FROM TB_LEITOS
+
+            WHERE
+                UF IS NOT NULL
+                AND CNES IS NOT NULL
 
             GROUP BY UF
 
@@ -265,81 +451,222 @@ class HospitaisModel:
         return self.db.fetch_data(query)
 
     # =========================================================
-    # UTIS POR UF
+    # GESTÃO
     # =========================================================
 
-    def utis_por_uf(self):
-        """
-        Retorna quantidade de UTIs por UF.
-        """
+    def hospitais_por_gestao(self):
 
         query = """
             SELECT
-                UF,
+                TP_GESTAO,
+                COUNT(DISTINCT CNES) AS TOTAL
 
-                NVL(SUM(UTI_TOTAL_EXIST), 0)
-                    AS UTI_TOTAL,
+            FROM TB_LEITOS
 
-                NVL(SUM(UTI_TOTAL_SUS), 0)
-                    AS UTI_SUS
+            WHERE
+                TP_GESTAO IS NOT NULL
+                AND CNES IS NOT NULL
 
-            FROM TB_GERAL
+            GROUP BY TP_GESTAO
 
-            WHERE UF IS NOT NULL
-
-            GROUP BY UF
-
-            ORDER BY UTI_TOTAL DESC
+            ORDER BY TOTAL DESC
         """
 
         return self.db.fetch_data(query)
 
     # =========================================================
-    # BUSCA POR MUNICÍPIO
+    # TIPO DE UNIDADE
     # =========================================================
 
-    def buscar_municipios(self, termo=""):
+    def hospitais_por_tipo(self):
+
+        query = """
+            SELECT
+                DS_TIPO_UNIDADE,
+                COUNT(DISTINCT CNES) AS TOTAL
+
+            FROM TB_LEITOS
+
+            WHERE
+                DS_TIPO_UNIDADE IS NOT NULL
+                AND CNES IS NOT NULL
+
+            GROUP BY DS_TIPO_UNIDADE
+
+            ORDER BY TOTAL DESC
         """
-        Busca municípios por nome, UF ou código IBGE.
-        """
+
+        return self.db.fetch_data(query)
+
+    # =========================================================
+    # BUSCA DE HOSPITAIS
+    # =========================================================
+
+    def buscar_hospitais(self, termo=""):
 
         termo = str(termo).strip()
 
         if not termo:
+
             return self.listar_dados()
 
         query = """
             SELECT
-                ID_GERAL,
-                COD_IBGE,
-                COD_UF,
-                UF,
-                MUNICIPIO,
-                POPULACAO_ESTIMADA,
 
-                INTERNACOES_TOTAL_2025,
+                CNES,
 
-                LEITOS_EXISTENTES,
-                LEITOS_SUS,
+                MAX(REGIAO)
+                    AS REGIAO,
 
-                UTI_TOTAL_EXIST,
-                UTI_TOTAL_SUS,
+                MAX(UF)
+                    AS UF,
 
-                COMP_LEITOS
+                MAX(CO_IBGE)
+                    AS CO_IBGE,
 
-            FROM TB_GERAL
+                MAX(MUNICIPIO)
+                    AS MUNICIPIO,
+
+                MAX(MOTIVO_DESABILITACAO)
+                    AS MOTIVO_DESABILITACAO,
+
+                MAX(NOME_ESTABELECIMENTO)
+                    AS NOME_ESTABELECIMENTO,
+
+                MAX(RAZAO_SOCIAL)
+                    AS RAZAO_SOCIAL,
+
+                MAX(TP_GESTAO)
+                    AS TP_GESTAO,
+
+                MAX(CO_TIPO_UNIDADE)
+                    AS CO_TIPO_UNIDADE,
+
+                MAX(DS_TIPO_UNIDADE)
+                    AS DS_TIPO_UNIDADE,
+
+                MAX(NATUREZA_JURIDICA)
+                    AS NATUREZA_JURIDICA,
+
+                MAX(DESC_NATUREZA_JURIDICA)
+                    AS DESC_NATUREZA_JURIDICA,
+
+                MAX(NO_LOGRADOURO)
+                    AS NO_LOGRADOURO,
+
+                MAX(NU_ENDERECO)
+                    AS NU_ENDERECO,
+
+                MAX(NO_COMPLEMENTO)
+                    AS NO_COMPLEMENTO,
+
+                MAX(NO_BAIRRO)
+                    AS NO_BAIRRO,
+
+                MAX(CO_CEP)
+                    AS CO_CEP,
+
+                MAX(NU_TELEFONE)
+                    AS NU_TELEFONE,
+
+                MAX(NO_EMAIL)
+                    AS NO_EMAIL,
+
+                NVL(
+                    SUM(LEITOS_EXISTENTES),
+                    0
+                ) AS LEITOS_EXISTENTES,
+
+                NVL(
+                    SUM(LEITOS_SUS),
+                    0
+                ) AS LEITOS_SUS,
+
+                NVL(
+                    SUM(UTI_TOTAL_EXIST),
+                    0
+                ) AS UTI_TOTAL_EXIST,
+
+                NVL(
+                    SUM(UTI_TOTAL_SUS),
+                    0
+                ) AS UTI_TOTAL_SUS,
+
+                NVL(
+                    SUM(UTI_ADULTO_EXIST),
+                    0
+                ) AS UTI_ADULTO_EXIST,
+
+                NVL(
+                    SUM(UTI_ADULTO_SUS),
+                    0
+                ) AS UTI_ADULTO_SUS,
+
+                NVL(
+                    SUM(UTI_PEDIATRICO_EXIST),
+                    0
+                ) AS UTI_PEDIATRICO_EXIST,
+
+                NVL(
+                    SUM(UTI_PEDIATRICO_SUS),
+                    0
+                ) AS UTI_PEDIATRICO_SUS,
+
+                NVL(
+                    SUM(UTI_NEONATAL_EXIST),
+                    0
+                ) AS UTI_NEONATAL_EXIST,
+
+                NVL(
+                    SUM(UTI_NEONATAL_SUS),
+                    0
+                ) AS UTI_NEONATAL_SUS,
+
+                NVL(
+                    SUM(UTI_QUEIMADO_EXIST),
+                    0
+                ) AS UTI_QUEIMADO_EXIST,
+
+                NVL(
+                    SUM(UTI_QUEIMADO_SUS),
+                    0
+                ) AS UTI_QUEIMADO_SUS,
+
+                NVL(
+                    SUM(UTI_CORONARIANA_EXIST),
+                    0
+                ) AS UTI_CORONARIANA_EXIST,
+
+                NVL(
+                    SUM(UTI_CORONARIANA_SUS),
+                    0
+                ) AS UTI_CORONARIANA_SUS,
+
+                MAX(DT_IMPORTACAO)
+                    AS DT_IMPORTACAO
+
+            FROM TB_LEITOS
 
             WHERE
-                UPPER(MUNICIPIO)
-                    LIKE '%' || UPPER(:1) || '%'
+                CNES IS NOT NULL
 
-                OR UPPER(UF)
-                    LIKE '%' || UPPER(:2) || '%'
+                AND (
+                    UPPER(NOME_ESTABELECIMENTO)
+                        LIKE '%' || UPPER(:1) || '%'
 
-                OR TO_CHAR(COD_IBGE)
-                    LIKE '%' || :3 || '%'
+                    OR UPPER(MUNICIPIO)
+                        LIKE '%' || UPPER(:2) || '%'
 
-            ORDER BY MUNICIPIO
+                    OR UPPER(UF)
+                        LIKE '%' || UPPER(:3) || '%'
+
+                    OR TO_CHAR(CNES)
+                        LIKE '%' || :4 || '%'
+                )
+
+            GROUP BY CNES
+
+            ORDER BY NOME_ESTABELECIMENTO
         """
 
         return self.db.fetch_data(
@@ -347,106 +674,22 @@ class HospitaisModel:
             [
                 termo,
                 termo,
-                termo
+                termo,
+                termo,
             ]
         )
-
-    # =========================================================
-    # TOP MUNICÍPIOS POR INTERNAÇÕES
-    # =========================================================
-
-    def top_municipios_internacoes(self, limite=10):
-        """
-        Retorna os municípios com maior quantidade
-        de internações em 2025.
-        """
-
-        limite = max(1, min(int(limite), 100))
-
-        query = f"""
-            SELECT *
-            FROM
-            (
-                SELECT
-                    MUNICIPIO,
-                    UF,
-                    INTERNACOES_TOTAL_2025,
-                    LEITOS_EXISTENTES,
-                    LEITOS_SUS,
-                    UTI_TOTAL_EXIST,
-                    UTI_TOTAL_SUS
-
-                FROM TB_GERAL
-
-                WHERE MUNICIPIO IS NOT NULL
-
-                ORDER BY INTERNACOES_TOTAL_2025 DESC
-            )
-
-            FETCH FIRST {limite} ROWS ONLY
-        """
-
-        return self.db.fetch_data(query)
-
-    # =========================================================
-    # TOP MUNICÍPIOS POR LEITOS
-    # =========================================================
-
-    def top_municipios_leitos(self, limite=10):
-        """
-        Retorna os municípios com maior quantidade de leitos.
-        """
-
-        limite = max(1, min(int(limite), 100))
-
-        query = f"""
-            SELECT *
-            FROM
-            (
-                SELECT
-                    MUNICIPIO,
-                    UF,
-                    LEITOS_EXISTENTES,
-                    LEITOS_SUS,
-                    UTI_TOTAL_EXIST,
-                    UTI_TOTAL_SUS,
-                    INTERNACOES_TOTAL_2025
-
-                FROM TB_GERAL
-
-                WHERE MUNICIPIO IS NOT NULL
-
-                ORDER BY LEITOS_EXISTENTES DESC
-            )
-
-            FETCH FIRST {limite} ROWS ONLY
-        """
-
-        return self.db.fetch_data(query)
-
-    # =========================================================
-    # ÚLTIMA INFORMAÇÃO DE COMPETÊNCIA
-    # =========================================================
-
-    def obter_competencia(self):
-        """
-        Retorna a competência dos dados disponíveis.
-        """
-
-        return "2025"
 
     # =========================================================
     # TOTAL DE REGISTROS
     # =========================================================
 
     def total_registros(self):
-        """
-        Retorna o total de registros da TB_GERAL.
-        """
 
         query = """
-            SELECT COUNT(*) AS TOTAL
-            FROM TB_GERAL
+            SELECT
+                COUNT(*) AS TOTAL
+
+            FROM TB_LEITOS
         """
 
         df = self.db.fetch_data(query)
@@ -454,4 +697,6 @@ class HospitaisModel:
         if df.empty:
             return 0
 
-        return int(df.iloc[0]["TOTAL"] or 0)
+        return int(
+            df.iloc[0]["TOTAL"] or 0
+        )
