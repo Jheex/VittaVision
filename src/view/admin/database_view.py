@@ -179,8 +179,7 @@ class DatabaseView:
                     col1, col2, col3 = st.columns(3)
 
                     with col1:
-
-                        st.markdown(
+                        st.html(
                             f"""
                             <div class="db-card">
                                 <div class="db-card-title">
@@ -191,13 +190,11 @@ class DatabaseView:
                                     {total_tabelas}
                                 </div>
                             </div>
-                            """,
-                            unsafe_allow_html=True,
+                            """
                         )
 
                     with col2:
-
-                        st.markdown(
+                        st.html(
                             """
                             <div class="db-card">
                                 <div class="db-card-title">
@@ -208,13 +205,11 @@ class DatabaseView:
                                     ALFA
                                 </div>
                             </div>
-                            """,
-                            unsafe_allow_html=True,
+                            """
                         )
 
                     with col3:
-
-                        st.markdown(
+                        st.html(
                             """
                             <div class="db-card">
                                 <div class="db-card-title">
@@ -225,8 +220,7 @@ class DatabaseView:
                                     Oracle
                                 </div>
                             </div>
-                            """,
-                            unsafe_allow_html=True,
+                            """
                         )
 
                     st.write("")
@@ -1475,15 +1469,19 @@ FETCH FIRST 100 ROWS ONLY""",
 
         with aba_admin:
 
-            st.markdown(
-                "### ⚠️ Administração do Banco"
+            st.html(
+                """
+                <h3 style="margin-bottom: 0.25rem;">
+                    ⚠️ Administração do Banco
+                </h3>
+                """
             )
 
             st.caption(
                 "Operações administrativas e potencialmente destrutivas."
             )
 
-            st.markdown(
+            st.html(
                 """
                 <div class="db-danger-box">
 
@@ -1499,16 +1497,19 @@ FETCH FIRST 100 ROWS ONLY""",
                     </div>
 
                 </div>
-                """,
-                unsafe_allow_html=True,
+                """
             )
 
             # -----------------------------------------------------
             # EXCLUSÃO DE TABELA
             # -----------------------------------------------------
 
-            st.markdown(
-                "#### 🗑️ Excluir tabela"
+            st.html(
+                """
+                <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">
+                    🗑️ Excluir tabela
+                </h4>
+                """
             )
 
             try:
@@ -1531,7 +1532,7 @@ FETCH FIRST 100 ROWS ONLY""",
                         key="admin_tabela_excluir",
                     )
 
-                    st.markdown(
+                    st.html(
                         f"""
                         <div class="db-danger-box">
 
@@ -1544,18 +1545,21 @@ FETCH FIRST 100 ROWS ONLY""",
                                 <strong style="color:white;">
                                     {tabela_excluir}
                                 </strong>.
+
                                 <br><br>
+
                                 A exclusão removerá a tabela e seus
                                 registros do Oracle.
+
                                 <br>
+
                                 <strong>
                                     Esta operação não poderá ser desfeita.
                                 </strong>
                             </div>
 
                         </div>
-                        """,
-                        unsafe_allow_html=True,
+                        """
                     )
 
                     # -------------------------------------------------
@@ -1616,7 +1620,7 @@ FETCH FIRST 100 ROWS ONLY""",
                             ]
                         )
 
-                        st.markdown(
+                        st.html(
                             f"""
                             <div class="db-danger-box">
 
@@ -1646,8 +1650,7 @@ FETCH FIRST 100 ROWS ONLY""",
                                 </div>
 
                             </div>
-                            """,
-                            unsafe_allow_html=True,
+                            """
                         )
 
                         c1, c2 = st.columns(2)
