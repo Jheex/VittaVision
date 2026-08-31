@@ -1,4 +1,5 @@
 import json
+import re
 from io import BytesIO
 from datetime import datetime
 
@@ -10,10 +11,6 @@ from model.oracle_connection import OracleDatabase
 
 class AssistenteIAView:
     """Assistente VITTA AI integrado ao Oracle Select AI."""
-
-    # ================================================================
-    # CONFIGURAÇÕES
-    # ================================================================
 
     ORACLE_PROFILE = "SUS_PROFILE"
 
@@ -84,13 +81,14 @@ class AssistenteIAView:
     def render(self, model=None):
 
         self._aplicar_estilo()
-
         self._inicializar_estado()
 
-        self._render_sidebar()
-        self._render_header()
-        self._render_conversa()
-        self._render_input()
+        with st.container(key="assistente_ia_view"):
+
+            self._render_sidebar()
+            self._render_header()
+            self._render_conversa()
+            self._render_input()
 
     # ================================================================
     # ESTILO
@@ -98,116 +96,84 @@ class AssistenteIAView:
 
     def _aplicar_estilo(self):
 
-        st.markdown(
+        st.html(
             """
             <style>
 
-            :root {
-                --vitta-blue: #2563eb;
-                --vitta-blue-light: #3b82f6;
-                --vitta-purple: #7c3aed;
-                --vitta-purple-light: #8b5cf6;
+            /* =====================================================
+               VITTA AI - ÁREA PRINCIPAL
+               ===================================================== */
 
-                --vitta-bg: #080b16;
-                --vitta-bg-2: #0d1120;
-                --vitta-sidebar: #090d19;
-
-                --vitta-card: #111728;
-                --vitta-card-2: #151b2e;
-
-                --vitta-border:
-                    rgba(139, 92, 246, 0.18);
-
-                --vitta-text: #f8fafc;
-                --vitta-muted: #94a3b8;
+            .vitta-ai-page {
+                width: 100%;
+                box-sizing: border-box;
             }
 
-            .stApp {
-                background:
-                    radial-gradient(
-                        circle at 75% 10%,
-                        rgba(37, 99, 235, 0.09),
-                        transparent 30%
-                    ),
-                    radial-gradient(
-                        circle at 45% 80%,
-                        rgba(124, 58, 237, 0.07),
-                        transparent 30%
-                    ),
-                    var(--vitta-bg);
-
-                color: var(--vitta-text);
-            }
-
-            html,
-            body,
-            [data-testid="stAppViewContainer"],
-            [data-testid="stHeader"],
-            [data-testid="stToolbar"] {
-                background-color: #080b16 !important;
-            }
-
-            [data-testid="stAppViewContainer"] {
-                background:
-                    radial-gradient(
-                        circle at 75% 10%,
-                        rgba(37, 99, 235, 0.09),
-                        transparent 30%
-                    ),
-                    radial-gradient(
-                        circle at 45% 80%,
-                        rgba(124, 58, 237, 0.07),
-                        transparent 30%
-                    ),
-                    #080b16 !important;
-            }
-
-            .main .block-container {
-                max-width: 1050px;
-                padding-top: 35px;
-                padding-bottom: 120px;
-            }
-
-            header[data-testid="stHeader"] {
-                background: transparent !important;
-            }
-
-            footer {
-                visibility: hidden;
-            }
+            /* =====================================================
+               SIDEBAR FIXA
+               ===================================================== */
 
             section[data-testid="stSidebar"] {
                 background:
                     linear-gradient(
                         180deg,
-                        #080b16 0%,
-                        #0b0f1d 100%
+                        #090c18 0%,
+                        #0d1020 52%,
+                        #090c17 100%
                     ) !important;
 
                 border-right:
                     1px solid
-                    rgba(124, 58, 237, 0.18);
+                    rgba(124, 58, 237, 0.16) !important;
             }
 
-            section[data-testid="stSidebar"] > div {
-                padding-top: 25px;
+            /* Espaçamento superior da sidebar */
+            section[data-testid="stSidebar"] > div:first-child {
+                padding-top: 58px !important;
             }
 
-            section[data-testid="stSidebar"] * {
-                color: #e2e8f0;
+            section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+                gap: 0.3rem;
             }
 
-            .vitta-logo {
+            /* =====================================================
+               ESCONDER CONTROLES DE FECHAMENTO DA SIDEBAR
+               ===================================================== */
+
+            section[data-testid="stSidebar"] button[aria-label*="Close"],
+            section[data-testid="stSidebar"] button[aria-label*="close"],
+            section[data-testid="stSidebar"] button[title*="Close"],
+            section[data-testid="stSidebar"] button[title*="close"] {
+                display: none !important;
+            }
+
+            /* Botão nativo de expandir/recolher */
+            button[data-testid="stSidebarCollapseButton"] {
+                display: none !important;
+            }
+
+            /* Alguns builds do Streamlit */
+            [data-testid="stSidebarHeader"] button {
+                display: none !important;
+            }
+
+            /* =====================================================
+               CABEÇALHO SIDEBAR
+               ===================================================== */
+
+            section[data-testid="stSidebar"] .vitta-sidebar-logo {
                 display: flex;
                 align-items: center;
                 gap: 12px;
-                margin-bottom: 5px;
+
+                padding:
+                    7px 8px 20px 8px;
             }
 
-            .vitta-logo-icon {
-                width: 42px;
-                height: 42px;
-                min-width: 42px;
+            section[data-testid="stSidebar"] .vitta-sidebar-icon {
+                width: 43px;
+                height: 43px;
+                min-width: 43px;
 
                 display: flex;
                 align-items: center;
@@ -218,58 +184,78 @@ class AssistenteIAView:
                 background:
                     linear-gradient(
                         135deg,
-                        #2563eb,
-                        #7c3aed
+                        #7c3aed,
+                        #6366f1
                     );
 
                 box-shadow:
-                    0 8px 25px
-                    rgba(79, 70, 229, 0.30);
+                    0 10px 28px
+                    rgba(124, 58, 237, 0.30);
 
-                font-size: 21px;
-            }
-
-            .vitta-logo-title {
-                font-size: 21px;
-                font-weight: 750;
                 color: #ffffff;
+
+                font-size: 21px;
+                font-weight: 700;
             }
 
-            .vitta-logo-subtitle {
-                font-size: 12px;
+            section[data-testid="stSidebar"] .vitta-sidebar-title {
+                color: #ffffff;
+
+                font-size: 20px;
+                font-weight: 750;
+
+                line-height: 1.1;
+            }
+
+            section[data-testid="stSidebar"] .vitta-sidebar-subtitle {
+                margin-top: 5px;
+
                 color: #64748b;
-                margin-top: -2px;
+
+                font-size: 11px;
+
+                line-height: 1.3;
             }
 
-            hr {
+            /* =====================================================
+               DIVISOR SIDEBAR
+               ===================================================== */
+
+            section[data-testid="stSidebar"] hr {
                 border: none !important;
 
                 border-top:
                     1px solid
-                    rgba(148, 163, 184, 0.08)
-                    !important;
+                    rgba(148, 163, 184, 0.08) !important;
 
-                margin-top: 18px !important;
+                margin-top: 8px !important;
                 margin-bottom: 18px !important;
             }
 
-            section[data-testid="stSidebar"]
-            .stButton {
-                margin-bottom: 3px;
+            /* =====================================================
+               BOTÕES SIDEBAR
+               ===================================================== */
+
+            section[data-testid="stSidebar"] .stButton {
+                margin-bottom: 5px;
             }
 
-            section[data-testid="stSidebar"]
-            .stButton button {
-                border-radius: 10px;
+            section[data-testid="stSidebar"] .stButton > button {
+                min-height: 43px;
+
+                border-radius: 11px !important;
 
                 border:
                     1px solid
-                    rgba(139, 92, 246, 0.14);
+                    rgba(139, 92, 246, 0.16) !important;
 
                 background:
-                    rgba(255, 255, 255, 0.025);
+                    rgba(124, 58, 237, 0.045) !important;
 
                 color: #cbd5e1 !important;
+
+                font-size: 13px;
+                font-weight: 600;
 
                 transition:
                     background 0.2s ease,
@@ -277,74 +263,106 @@ class AssistenteIAView:
                     transform 0.2s ease;
             }
 
-            section[data-testid="stSidebar"]
-            .stButton button:hover {
+            section[data-testid="stSidebar"] .stButton > button:hover {
                 background:
                     linear-gradient(
-                        90deg,
-                        rgba(37, 99, 235, 0.16),
-                        rgba(124, 58, 237, 0.16)
-                    );
+                        135deg,
+                        rgba(124, 58, 237, 0.15),
+                        rgba(99, 102, 241, 0.12)
+                    ) !important;
 
                 border-color:
-                    rgba(139, 92, 246, 0.40);
+                    rgba(139, 92, 246, 0.42) !important;
 
                 color: #ffffff !important;
 
                 transform: translateY(-1px);
             }
 
-            section[data-testid="stSidebar"]
-            button[kind="secondary"] {
-                min-height: 42px;
-            }
+            /* =====================================================
+               HISTÓRICO
+               ===================================================== */
 
-            .historico-titulo {
+            section[data-testid="stSidebar"] .historico-titulo {
                 color: #64748b;
 
-                font-size: 11px;
+                font-size: 10px;
 
-                font-weight: 700;
+                font-weight: 750;
 
                 text-transform: uppercase;
 
-                letter-spacing: 1px;
+                letter-spacing: 1.2px;
 
-                margin-top: 25px;
+                margin-top: 23px;
+                margin-bottom: 9px;
 
-                margin-bottom: 8px;
+                padding-left: 3px;
             }
 
-            section[data-testid="stSidebar"]
-            .stButton button {
+            section[data-testid="stSidebar"] .stButton button {
                 white-space: nowrap;
+
                 overflow: hidden;
+
                 text-overflow: ellipsis;
             }
 
-            .vitta-header {
-                margin-bottom: 20px;
+            /* =====================================================
+               RODAPÉ
+               ===================================================== */
+
+            section[data-testid="stSidebar"] .vitta-sidebar-footer {
+                padding:
+                    8px 3px 4px 3px;
+
+                color: #475569;
+
+                font-size: 10px;
+
+                line-height: 1.6;
             }
 
-            .vitta-header-title {
+            section[data-testid="stSidebar"] .vitta-sidebar-footer strong {
+                color: #64748b;
+
+                font-weight: 700;
+            }
+
+            /* =====================================================
+               HEADER VITTA AI
+               ===================================================== */
+
+            .vitta-ai-header {
+                padding-top: 30px;
+
+                margin-bottom: 4px;
+            }
+
+            .vitta-ai-header-title {
                 display: flex;
+
                 align-items: center;
+
                 gap: 13px;
 
+                color: #ffffff;
+
                 font-size: 32px;
+
                 font-weight: 750;
 
                 letter-spacing: -1px;
-
-                color: #ffffff;
             }
 
-            .vitta-header-icon {
+            .vitta-ai-header-icon {
                 width: 45px;
                 height: 45px;
+
                 min-width: 45px;
 
                 display: flex;
+
                 align-items: center;
                 justify-content: center;
 
@@ -353,93 +371,149 @@ class AssistenteIAView:
                 background:
                     linear-gradient(
                         135deg,
-                        #2563eb,
-                        #7c3aed
+                        #7c3aed,
+                        #6366f1
                     );
 
                 box-shadow:
                     0 10px 30px
-                    rgba(79, 70, 229, 0.28);
+                    rgba(124, 58, 237, 0.30);
+
+                color: #ffffff;
 
                 font-size: 22px;
+
+                font-weight: 700;
             }
 
-            .vitta-header-subtitle {
-                margin-top: 7px;
+            .vitta-ai-header-subtitle {
+                margin-top: 8px;
+
                 margin-left: 58px;
 
                 color: #64748b;
 
                 font-size: 14px;
+
                 line-height: 1.5;
             }
 
-            [data-testid="stChatMessage"] {
-                background: transparent;
-                border: none;
+            .vitta-ai-header-divider {
+                height: 1px;
 
-                padding-top: 18px;
-                padding-bottom: 18px;
-            }
+                margin-top: 22px;
 
-            [data-testid="chatAvatarIcon-user"] {
+                margin-bottom: 12px;
+
                 background:
-                    linear-gradient(
-                        135deg,
-                        #2563eb,
-                        #4f46e5
-                    ) !important;
+                    rgba(148, 163, 184, 0.08);
             }
 
-            [data-testid="chatAvatarIcon-assistant"] {
+            /* =====================================================
+               ÁREA DE CHAT
+               ===================================================== */
+
+            .vitta-chat-row {
+                width: 100%;
+
+                display: flex;
+
+                align-items: flex-start;
+
+                margin-top: 17px;
+
+                margin-bottom: 17px;
+
+                box-sizing: border-box;
+            }
+
+            /* =====================================================
+               IA
+               ===================================================== */
+
+            .vitta-chat-row-ai {
+                justify-content: flex-start;
+
+                gap: 11px;
+            }
+
+            .vitta-ai-avatar {
+                width: 34px;
+                height: 34px;
+
+                min-width: 34px;
+
+                display: flex;
+
+                align-items: center;
+                justify-content: center;
+
+                border-radius: 10px;
+
                 background:
                     linear-gradient(
                         135deg,
                         #7c3aed,
-                        #2563eb
-                    ) !important;
-            }
+                        #6366f1
+                    );
 
-            [data-testid="stChatMessage"]:has(
-                [data-testid="chatAvatarIcon-user"]
-            ) {
-                background:
-                    rgba(37, 99, 235, 0.045);
+                box-shadow:
+                    0 6px 18px
+                    rgba(124, 58, 237, 0.25);
 
-                border-top:
-                    1px solid
-                    rgba(37, 99, 235, 0.08);
-
-                border-bottom:
-                    1px solid
-                    rgba(37, 99, 235, 0.08);
-            }
-
-            [data-testid="stChatMessage"]:has(
-                [data-testid="chatAvatarIcon-assistant"]
-            ) {
-                background:
-                    rgba(124, 58, 237, 0.025);
-            }
-
-            [data-testid="stChatMessage"] p {
-                color: #e2e8f0;
-
-                font-size: 15px;
-                line-height: 1.65;
-            }
-
-            [data-testid="stChatMessage"] strong {
                 color: #ffffff;
+
+                font-size: 16px;
+
+                font-weight: 700;
             }
 
-            [data-testid="stChatMessage"] code {
+            .vitta-ai-bubble {
+                max-width: 82%;
+
+                padding:
+                    13px 17px;
+
+                border-radius:
+                    6px 17px 17px 17px;
+
                 background:
-                    rgba(124, 58, 237, 0.10);
+                    linear-gradient(
+                        145deg,
+                        rgba(17, 23, 40, 0.96),
+                        rgba(21, 27, 46, 0.92)
+                    );
 
                 border:
                     1px solid
-                    rgba(124, 58, 237, 0.16);
+                    rgba(139, 92, 246, 0.13);
+
+                color: #e2e8f0;
+
+                box-shadow:
+                    0 7px 25px
+                    rgba(0, 0, 0, 0.14);
+
+                font-size: 15px;
+
+                line-height: 1.65;
+
+                box-sizing: border-box;
+            }
+
+            .vitta-ai-bubble strong {
+                color: #ffffff;
+
+                font-weight: 700;
+            }
+
+            .vitta-ai-bubble code {
+                background:
+                    rgba(124, 58, 237, 0.12);
+
+                border:
+                    1px solid
+                    rgba(124, 58, 237, 0.18);
 
                 color: #c4b5fd;
 
@@ -448,8 +522,114 @@ class AssistenteIAView:
                 padding: 2px 5px;
             }
 
+            /* =====================================================
+               USUÁRIO
+               ===================================================== */
+
+            .vitta-chat-row-user {
+                justify-content: flex-end;
+
+                gap: 11px;
+            }
+
+            .vitta-user-bubble {
+                max-width: 78%;
+
+                padding:
+                    12px 16px;
+
+                border-radius:
+                    17px 6px 17px 17px;
+
+                background:
+                    linear-gradient(
+                        135deg,
+                        rgba(124, 58, 237, 0.18),
+                        rgba(99, 102, 241, 0.12)
+                    );
+
+                border:
+                    1px solid
+                    rgba(139, 92, 246, 0.18);
+
+                color: #e2e8f0;
+
+                box-shadow:
+                    0 8px 25px
+                    rgba(0, 0, 0, 0.12);
+
+                font-size: 15px;
+
+                line-height: 1.6;
+
+                box-sizing: border-box;
+            }
+
+            .vitta-user-bubble strong {
+                color: #ffffff;
+
+                font-weight: 700;
+            }
+
+            /* =====================================================
+               AVATAR DO USUÁRIO
+               ===================================================== */
+
+            .vitta-user-avatar {
+                width: 34px;
+                height: 34px;
+
+                min-width: 34px;
+
+                display: flex;
+
+                align-items: center;
+                justify-content: center;
+
+                border-radius: 10px;
+
+                background:
+                    linear-gradient(
+                        145deg,
+                        #f8fafc,
+                        #dbe4f0
+                    );
+
+                color: #475569;
+
+                box-shadow:
+                    0 6px 18px
+                    rgba(0, 0, 0, 0.20);
+
+                font-size: 19px;
+
+                line-height: 1;
+            }
+
+            /* =====================================================
+               PARÁGRAFOS
+               ===================================================== */
+
+            .vitta-chat-text p {
+                margin:
+                    0 0 8px 0;
+            }
+
+            .vitta-chat-text p:last-child {
+                margin-bottom: 0;
+            }
+
+            .vitta-chat-text br {
+                line-height: 1.7;
+            }
+
+            /* =====================================================
+               TABELAS
+               ===================================================== */
+
             [data-testid="stDataFrame"] {
                 border-radius: 14px;
+
                 overflow: hidden;
 
                 border:
@@ -459,114 +639,132 @@ class AssistenteIAView:
                 box-shadow:
                     0 10px 35px
                     rgba(0, 0, 0, 0.18);
+
+                margin-top: 8px;
+
+                margin-bottom: 8px;
+            }
+
+            /* =====================================================
+               EXPORTAÇÃO
+               ===================================================== */
+
+            .vitta-export-title {
+                margin-top: 18px;
+
+                margin-bottom: 10px;
+
+                color: #64748b;
+
+                font-size: 11px;
+
+                font-weight: 700;
+
+                letter-spacing: 0.5px;
             }
 
             [data-testid="stDownloadButton"] button {
-                border-radius: 9px;
+                min-height: 42px;
+
+                border-radius: 10px !important;
 
                 background:
-                    rgba(37, 99, 235, 0.08);
+                    rgba(124, 58, 237, 0.07) !important;
 
                 border:
                     1px solid
-                    rgba(37, 99, 235, 0.25);
+                    rgba(124, 58, 237, 0.22) !important;
 
-                color: #93c5fd;
-
-                transition: all 0.2s ease;
+                color: #c4b5fd !important;
             }
 
             [data-testid="stDownloadButton"] button:hover {
                 background:
-                    rgba(124, 58, 237, 0.15);
+                    rgba(124, 58, 237, 0.16) !important;
 
                 border-color:
-                    rgba(139, 92, 246, 0.45);
+                    rgba(139, 92, 246, 0.45) !important;
 
-                color: #ffffff;
+                color: #ffffff !important;
             }
 
-            .sugestoes-container {
-                margin-top: 32px;
-                margin-bottom: 12px;
+            /* =====================================================
+               SUGESTÕES
+               ===================================================== */
+
+            .vitta-sugestoes {
+                margin-top: 30px;
+
+                margin-bottom: 11px;
             }
 
-            .sugestoes-titulo {
+            .vitta-sugestoes-title {
                 color: #64748b;
 
-                font-size: 12px;
+                font-size: 11px;
+
                 font-weight: 700;
 
-                letter-spacing: 0.4px;
+                letter-spacing: 0.5px;
 
-                margin-bottom: 12px;
+                margin-bottom: 11px;
             }
 
-            .main .stButton button {
-                min-height: 48px;
+            /* =====================================================
+               BOTÕES PRINCIPAIS
+               ===================================================== */
 
-                border-radius: 14px;
+            .main .stButton button {
+                min-height: 47px;
+
+                border-radius: 13px !important;
 
                 border:
                     1px solid
-                    rgba(139, 92, 246, 0.16);
+                    rgba(139, 92, 246, 0.16) !important;
 
                 background:
                     linear-gradient(
                         145deg,
-                        rgba(17, 23, 40, 0.95),
-                        rgba(21, 27, 46, 0.85)
-                    );
+                        rgba(17, 23, 40, 0.96),
+                        rgba(21, 27, 46, 0.90)
+                    ) !important;
 
                 color: #cbd5e1 !important;
 
-                font-size: 13px;
+                font-size: 12px;
+
                 font-weight: 600;
 
                 box-shadow:
                     0 6px 20px
                     rgba(0, 0, 0, 0.16);
-
-                transition:
-                    all 0.22s ease;
-
-                position: relative;
-                overflow: hidden;
             }
 
             .main .stButton button:hover {
                 transform:
-                    translateY(-3px);
+                    translateY(-2px);
 
                 border-color:
-                    rgba(139, 92, 246, 0.45);
+                    rgba(139, 92, 246, 0.42) !important;
 
                 background:
                     linear-gradient(
                         135deg,
-                        rgba(37, 99, 235, 0.13),
-                        rgba(124, 58, 237, 0.16)
-                    );
+                        rgba(124, 58, 237, 0.13),
+                        rgba(99, 102, 241, 0.13)
+                    ) !important;
 
-                color:
-                    #ffffff !important;
-
-                box-shadow:
-                    0 10px 28px
-                    rgba(79, 70, 229, 0.18);
+                color: #ffffff !important;
             }
 
-            .main .stButton button:active {
-                transform:
-                    translateY(-1px);
-
-                box-shadow:
-                    0 5px 15px
-                    rgba(79, 70, 229, 0.15);
-            }
+            /* =====================================================
+               CHAT INPUT
+               ===================================================== */
 
             [data-testid="stChatInput"] {
                 background: transparent;
+
                 padding-bottom: 15px;
             }
 
@@ -583,26 +781,24 @@ class AssistenteIAView:
                 box-shadow:
                     0 8px 35px
                     rgba(0, 0, 0, 0.28);
-
-                transition:
-                    border 0.2s ease,
-                    box-shadow 0.2s ease;
             }
 
             [data-testid="stChatInput"] > div:focus-within {
                 border-color:
-                    rgba(99, 102, 241, 0.65);
+                    rgba(139, 92, 246, 0.65);
 
                 box-shadow:
                     0 0 0 3px
-                    rgba(99, 102, 241, 0.08),
+                    rgba(124, 58, 237, 0.08),
                     0 8px 35px
                     rgba(0, 0, 0, 0.28);
             }
 
             [data-testid="stChatInput"] textarea {
                 color: #f8fafc !important;
+
                 background: transparent !important;
+
                 font-size: 14px;
             }
 
@@ -614,29 +810,18 @@ class AssistenteIAView:
                 background:
                     linear-gradient(
                         135deg,
-                        #2563eb,
-                        #7c3aed
+                        #7c3aed,
+                        #6366f1
                     ) !important;
 
                 border: none;
+
                 border-radius: 10px;
-
-                transition:
-                    transform 0.2s ease,
-                    box-shadow 0.2s ease;
             }
 
-            [data-testid="stChatInput"] button:hover {
-                transform: scale(1.04);
-
-                box-shadow:
-                    0 5px 20px
-                    rgba(124, 58, 237, 0.35);
-            }
-
-            [data-testid="stSpinner"] {
-                color: #8b5cf6;
-            }
+            /* =====================================================
+               SCROLLBAR
+               ===================================================== */
 
             ::-webkit-scrollbar {
                 width: 7px;
@@ -650,32 +835,42 @@ class AssistenteIAView:
                 background:
                     linear-gradient(
                         180deg,
-                        #2563eb,
-                        #7c3aed
+                        #7c3aed,
+                        #6366f1
                     );
 
                 border-radius: 10px;
             }
 
+            /* =====================================================
+               RESPONSIVO
+               ===================================================== */
+
             @media (max-width: 768px) {
 
-                .main .block-container {
-                    padding-left: 15px;
-                    padding-right: 15px;
+                .vitta-ai-header {
+                    padding-top: 18px;
                 }
 
-                .vitta-header-title {
+                .vitta-ai-header-title {
                     font-size: 26px;
                 }
 
-                .vitta-header-subtitle {
+                .vitta-ai-header-subtitle {
                     margin-left: 0;
+                }
+
+                .vitta-ai-bubble {
+                    max-width: 88%;
+                }
+
+                .vitta-user-bubble {
+                    max-width: 88%;
                 }
             }
 
             </style>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
     # ================================================================
@@ -687,12 +882,9 @@ class AssistenteIAView:
         if "vitta_conversations" not in st.session_state:
 
             st.session_state.vitta_conversations = {
-
                 "Nova conversa": [
-
                     {
                         "role": "assistant",
-
                         "content": (
                             "Olá! Como posso ajudar você a consultar "
                             "os dados do SUS hoje?\n\n"
@@ -719,19 +911,19 @@ class AssistenteIAView:
 
             st.html(
                 """
-                <div class="vitta-logo">
+                <div class="vitta-sidebar-logo">
 
-                    <div class="vitta-logo-icon">
-                        🤖
+                    <div class="vitta-sidebar-icon">
+                        ✦
                     </div>
 
                     <div>
 
-                        <div class="vitta-logo-title">
+                        <div class="vitta-sidebar-title">
                             VITTA AI
                         </div>
 
-                        <div class="vitta-logo-subtitle">
+                        <div class="vitta-sidebar-subtitle">
                             Assistente de dados do SUS
                         </div>
 
@@ -752,10 +944,8 @@ class AssistenteIAView:
                 nome = self._gerar_nome_conversa()
 
                 st.session_state.vitta_conversations[nome] = [
-
                     {
                         "role": "assistant",
-
                         "content": (
                             "Olá! Como posso ajudar você a consultar "
                             "os dados do SUS hoje?\n\n"
@@ -792,10 +982,11 @@ class AssistenteIAView:
                     == st.session_state.vitta_current_conversation
                 )
 
-                if ativo:
-                    label = f"🔵  {nome}"
-                else:
-                    label = f"　{nome}"
+                label = (
+                    f"●  {nome}"
+                    if ativo
+                    else f"　{nome}"
+                )
 
                 with col_conversa:
 
@@ -828,10 +1019,8 @@ class AssistenteIAView:
                             st.session_state.vitta_conversations[
                                 "Nova conversa"
                             ] = [
-
                                 {
                                     "role": "assistant",
-
                                     "content": (
                                         "Olá! Como posso ajudar você "
                                         "a consultar os dados do SUS hoje?\n\n"
@@ -861,17 +1050,9 @@ class AssistenteIAView:
 
             st.html(
                 """
-                <div style="
-                    color:#475569;
-                    font-size:11px;
-                    line-height:1.6;
-                    padding:4px 2px;
-                ">
+                <div class="vitta-sidebar-footer">
 
-                    <strong style="
-                        color:#64748b;
-                        font-weight:700;
-                    ">
+                    <strong>
                         VITTA VISION
                     </strong>
 
@@ -891,12 +1072,12 @@ class AssistenteIAView:
 
         st.html(
             """
-            <div class="vitta-header">
+            <div class="vitta-ai-header">
 
-                <div class="vitta-header-title">
+                <div class="vitta-ai-header-title">
 
-                    <div class="vitta-header-icon">
-                        🤖
+                    <div class="vitta-ai-header-icon">
+                        ✦
                     </div>
 
                     <span>
@@ -905,16 +1086,16 @@ class AssistenteIAView:
 
                 </div>
 
-                <div class="vitta-header-subtitle">
+                <div class="vitta-ai-header-subtitle">
                     Assistente inteligente para consulta
                     dos dados do SUS
                 </div>
 
             </div>
+
+            <div class="vitta-ai-header-divider"></div>
             """
         )
-
-        st.divider()
 
     # ================================================================
     # CONVERSA
@@ -922,13 +1103,9 @@ class AssistenteIAView:
 
     def _render_conversa(self):
 
-        nome = (
-            st.session_state.vitta_current_conversation
-        )
+        nome = st.session_state.vitta_current_conversation
 
-        mensagens = (
-            st.session_state.vitta_conversations[nome]
-        )
+        mensagens = st.session_state.vitta_conversations[nome]
 
         for indice, message in enumerate(mensagens):
 
@@ -936,21 +1113,11 @@ class AssistenteIAView:
 
             conteudo = message["content"]
 
-            avatar = (
-                "🤖"
-                if role == "assistant"
-                else "👤"
+            self._render_conteudo(
+                conteudo,
+                indice,
+                assistant=(role == "assistant"),
             )
-
-            with st.chat_message(
-                role,
-                avatar=avatar,
-            ):
-
-                self._render_conteudo(
-                    conteudo,
-                    indice,
-                )
 
     # ================================================================
     # CONTEÚDO
@@ -960,7 +1127,12 @@ class AssistenteIAView:
         self,
         conteudo,
         indice,
+        assistant=True,
     ):
+
+        # ------------------------------------------------------------
+        # RESULTADO ESTRUTURADO
+        # ------------------------------------------------------------
 
         if isinstance(
             conteudo,
@@ -975,9 +1147,7 @@ class AssistenteIAView:
 
                 try:
 
-                    df = pd.DataFrame(
-                        dados
-                    )
+                    df = pd.DataFrame(dados)
 
                 except Exception:
 
@@ -988,29 +1158,177 @@ class AssistenteIAView:
                     and not df.empty
                 ):
 
-                    st.dataframe(
-                        df,
-                        use_container_width=True,
-                        hide_index=True,
-                    )
-
-                    self._render_grafico(
-                        df
-                    )
-
-                    # ====================================================
-                    # EXPORTAÇÕES
-                    # ====================================================
-
-                    self._render_exportacoes(
+                    self._render_resultado_visual(
                         df,
                         indice,
+                        assistant,
                     )
 
                     return
 
-        st.markdown(
-            str(conteudo)
+        # ------------------------------------------------------------
+        # TEXTO
+        # ------------------------------------------------------------
+
+        texto = str(conteudo)
+
+        texto_html = self._texto_para_html(
+            texto
+        )
+
+        if assistant:
+
+            st.html(
+                f"""
+                <div class="vitta-chat-row vitta-chat-row-ai">
+
+                    <div class="vitta-ai-avatar">
+                        ✦
+                    </div>
+
+                    <div class="vitta-ai-bubble">
+
+                        <div class="vitta-chat-text">
+                            {texto_html}
+                        </div>
+
+                    </div>
+
+                </div>
+                """
+            )
+
+        else:
+
+            st.html(
+                f"""
+                <div class="vitta-chat-row vitta-chat-row-user">
+
+                    <div class="vitta-user-bubble">
+
+                        <div class="vitta-chat-text">
+                            {texto_html}
+                        </div>
+
+                    </div>
+
+                    <div class="vitta-user-avatar">
+                        ♙
+                    </div>
+
+                </div>
+                """
+            )
+
+    # ================================================================
+    # RESULTADO VISUAL
+    # ================================================================
+
+    def _render_resultado_visual(
+        self,
+        df,
+        indice,
+        assistant,
+    ):
+
+        if assistant:
+
+            st.html(
+                """
+                <div class="vitta-chat-row vitta-chat-row-ai">
+
+                    <div class="vitta-ai-avatar">
+                        ✦
+                    </div>
+
+                    <div class="vitta-ai-bubble">
+                        Resultado encontrado nos dados do SUS.
+                    </div>
+
+                </div>
+                """
+            )
+
+        else:
+
+            st.html(
+                """
+                <div class="vitta-chat-row vitta-chat-row-user">
+
+                    <div class="vitta-user-bubble">
+                        Consulta realizada.
+                    </div>
+
+                    <div class="vitta-user-avatar">
+                        ♙
+                    </div>
+
+                </div>
+                """
+            )
+
+        st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        self._render_grafico(df)
+
+        self._render_exportacoes(
+            df,
+            indice,
+        )
+
+    # ================================================================
+    # CONVERTER TEXTO PARA HTML
+    # ================================================================
+
+    def _texto_para_html(
+        self,
+        texto,
+    ):
+
+        import html
+
+        texto = html.escape(
+            str(texto)
+        )
+
+        # Negrito
+        texto = re.sub(
+            r"\*\*(.+?)\*\*",
+            r"<strong>\1</strong>",
+            texto,
+        )
+
+        # Código inline
+        texto = re.sub(
+            r"`([^`]+)`",
+            r"<code>\1</code>",
+            texto,
+        )
+
+        # Quebras de linha
+        blocos = texto.split("\n\n")
+
+        resultado = []
+
+        for bloco in blocos:
+
+            bloco = bloco.replace(
+                "\n",
+                "<br>",
+            )
+
+            if bloco.strip():
+
+                resultado.append(
+                    f"<p>{bloco}</p>"
+                )
+
+        return "".join(
+            resultado
         )
 
     # ================================================================
@@ -1022,50 +1340,20 @@ class AssistenteIAView:
         df,
         indice,
     ):
-        """
-        Renderiza os botões para exportar os dados
-        em CSV, Excel e PDF.
-        """
 
-        # ============================================================
-        # PREPARAR ARQUIVOS
-        # ============================================================
+        csv_data = self._gerar_csv(df)
 
-        csv_data = self._gerar_csv(
-            df
-        )
+        excel_data = self._gerar_excel(df)
 
-        excel_data = self._gerar_excel(
-            df
-        )
+        pdf_data = self._gerar_pdf(df)
 
-        pdf_data = self._gerar_pdf(
-            df
-        )
-
-        # ============================================================
-        # TÍTULO
-        # ============================================================
-
-        st.markdown(
+        st.html(
             """
-            <div style="
-                margin-top:18px;
-                margin-bottom:10px;
-                color:#64748b;
-                font-size:12px;
-                font-weight:700;
-                letter-spacing:0.4px;
-            ">
+            <div class="vitta-export-title">
                 📤 Exportar resultado
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
-
-        # ============================================================
-        # BOTÕES
-        # ============================================================
 
         col1, col2, col3 = st.columns(3)
 
@@ -1106,21 +1394,16 @@ class AssistenteIAView:
             )
 
     # ================================================================
-    # GERAR CSV
+    # CSV
     # ================================================================
 
     def _gerar_csv(
         self,
         df,
     ):
-        """
-        Gera o DataFrame em CSV UTF-8 com BOM,
-        garantindo compatibilidade com Excel.
-        """
 
         return (
-            df
-            .to_csv(
+            df.to_csv(
                 index=False
             )
             .encode(
@@ -1129,16 +1412,13 @@ class AssistenteIAView:
         )
 
     # ================================================================
-    # GERAR EXCEL
+    # EXCEL
     # ================================================================
 
     def _gerar_excel(
         self,
         df,
     ):
-        """
-        Gera um arquivo Excel .xlsx em memória.
-        """
 
         output = BytesIO()
 
@@ -1153,31 +1433,15 @@ class AssistenteIAView:
                 sheet_name="Dados SUS",
             )
 
-            workbook = writer.book
-
-            worksheet = (
-                writer.sheets["Dados SUS"]
-            )
-
-            # --------------------------------------------------------
-            # Congelar cabeçalho
-            # --------------------------------------------------------
+            worksheet = writer.sheets["Dados SUS"]
 
             worksheet.freeze_panes = "A2"
-
-            # --------------------------------------------------------
-            # Filtro automático
-            # --------------------------------------------------------
 
             if len(df.columns) > 0:
 
                 worksheet.auto_filter.ref = (
                     worksheet.dimensions
                 )
-
-            # --------------------------------------------------------
-            # Ajustar largura das colunas
-            # --------------------------------------------------------
 
             for coluna in worksheet.columns:
 
@@ -1195,47 +1459,42 @@ class AssistenteIAView:
                             )
                         )
 
-                        if tamanho > maior_tamanho:
-
-                            maior_tamanho = tamanho
+                        maior_tamanho = max(
+                            maior_tamanho,
+                            tamanho,
+                        )
 
                     except Exception:
 
                         pass
 
-                largura = min(
+                worksheet.column_dimensions[
+                    letra
+                ].width = min(
                     maior_tamanho + 3,
                     45,
                 )
-
-                worksheet.column_dimensions[
-                    letra
-                ].width = largura
 
         output.seek(0)
 
         return output.getvalue()
 
     # ================================================================
-    # GERAR PDF
+    # PDF
     # ================================================================
 
     def _gerar_pdf(
         self,
         df,
     ):
-        """
-        Gera um PDF contendo:
-        - título do VITTA VISION
-        - data/hora da geração
-        - quantidade de registros
-        - tabela de dados
-        """
 
         from reportlab.lib import colors
         from reportlab.lib.enums import TA_CENTER
         from reportlab.lib.pagesizes import A4, landscape
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.styles import (
+            getSampleStyleSheet,
+            ParagraphStyle,
+        )
         from reportlab.lib.units import mm
         from reportlab.platypus import (
             SimpleDocTemplate,
@@ -1247,10 +1506,6 @@ class AssistenteIAView:
 
         output = BytesIO()
 
-        # ============================================================
-        # CONFIGURAÇÃO DA PÁGINA
-        # ============================================================
-
         documento = SimpleDocTemplate(
             output,
             pagesize=landscape(A4),
@@ -1259,10 +1514,6 @@ class AssistenteIAView:
             topMargin=10 * mm,
             bottomMargin=10 * mm,
         )
-
-        # ============================================================
-        # ESTILOS
-        # ============================================================
 
         estilos = getSampleStyleSheet()
 
@@ -1303,10 +1554,6 @@ class AssistenteIAView:
 
         elementos = []
 
-        # ============================================================
-        # TÍTULO
-        # ============================================================
-
         elementos.append(
             Paragraph(
                 "VITTA VISION",
@@ -1320,10 +1567,6 @@ class AssistenteIAView:
                 estilo_subtitulo,
             )
         )
-
-        # ============================================================
-        # INFORMAÇÕES
-        # ============================================================
 
         data_geracao = datetime.now().strftime(
             "%d/%m/%Y às %H:%M"
@@ -1346,10 +1589,6 @@ class AssistenteIAView:
                 8,
             )
         )
-
-        # ============================================================
-        # PREPARAR DADOS
-        # ============================================================
 
         dados_pdf = []
 
@@ -1380,33 +1619,17 @@ class AssistenteIAView:
 
                 else:
 
-                    texto = str(
-                        valor
-                    )
+                    texto = str(valor)
 
-                # Evitar conteúdo excessivamente grande
                 if len(texto) > 100:
 
-                    texto = (
-                        texto[:97]
-                        + "..."
-                    )
+                    texto = texto[:97] + "..."
 
-                # Escapar caracteres HTML
                 texto = (
                     texto
-                    .replace(
-                        "&",
-                        "&amp;",
-                    )
-                    .replace(
-                        "<",
-                        "&lt;",
-                    )
-                    .replace(
-                        ">",
-                        "&gt;",
-                    )
+                    .replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
                 )
 
                 linha_pdf.append(
@@ -1419,10 +1642,6 @@ class AssistenteIAView:
             dados_pdf.append(
                 linha_pdf
             )
-
-        # ============================================================
-        # LARGURA DAS COLUNAS
-        # ============================================================
 
         quantidade_colunas = len(
             df.columns
@@ -1451,10 +1670,6 @@ class AssistenteIAView:
 
             larguras = None
 
-        # ============================================================
-        # TABELA
-        # ============================================================
-
         tabela = Table(
             dados_pdf,
             colWidths=larguras,
@@ -1468,75 +1683,60 @@ class AssistenteIAView:
                         "BACKGROUND",
                         (0, 0),
                         (-1, 0),
-                        colors.HexColor(
-                            "#2563EB"
-                        ),
+                        colors.HexColor("#7C3AED"),
                     ),
-
                     (
                         "TEXTCOLOR",
                         (0, 0),
                         (-1, 0),
                         colors.white,
                     ),
-
                     (
                         "FONTNAME",
                         (0, 0),
                         (-1, 0),
                         "Helvetica-Bold",
                     ),
-
                     (
                         "VALIGN",
                         (0, 0),
                         (-1, -1),
                         "MIDDLE",
                     ),
-
                     (
                         "GRID",
                         (0, 0),
                         (-1, -1),
                         0.25,
-                        colors.HexColor(
-                            "#CBD5E1"
-                        ),
+                        colors.HexColor("#CBD5E1"),
                     ),
-
                     (
                         "ROWBACKGROUNDS",
                         (0, 1),
                         (-1, -1),
                         [
                             colors.white,
-                            colors.HexColor(
-                                "#F8FAFC"
-                            ),
+                            colors.HexColor("#F8FAFC"),
                         ],
                     ),
-
                     (
                         "LEFTPADDING",
                         (0, 0),
                         (-1, -1),
                         4,
                     ),
-
                     (
                         "RIGHTPADDING",
                         (0, 0),
                         (-1, -1),
                         4,
                     ),
-
                     (
                         "TOPPADDING",
                         (0, 0),
                         (-1, -1),
                         4,
                     ),
-
                     (
                         "BOTTOMPADDING",
                         (0, 0),
@@ -1550,10 +1750,6 @@ class AssistenteIAView:
         elementos.append(
             tabela
         )
-
-        # ============================================================
-        # GERAR
-        # ============================================================
 
         documento.build(
             elementos
@@ -1666,9 +1862,7 @@ class AssistenteIAView:
         if not coluna_categoria:
             return
 
-        coluna_valor = (
-            colunas_numericas[0]
-        )
+        coluna_valor = colunas_numericas[0]
 
         try:
 
@@ -1715,9 +1909,9 @@ class AssistenteIAView:
 
             st.html(
                 """
-                <div class="sugestoes-container">
+                <div class="vitta-sugestoes">
 
-                    <div class="sugestoes-titulo">
+                    <div class="vitta-sugestoes-title">
                         💡 Sugestões rápidas
                     </div>
 
@@ -1863,10 +2057,6 @@ class AssistenteIAView:
                 "content": resposta,
             }
         )
-
-        # ============================================================
-        # RENOMEAR PELO PRIMEIRO PROMPT
-        # ============================================================
 
         if nome.startswith(
             "Nova conversa"
@@ -2123,21 +2313,17 @@ PERGUNTA DO USUÁRIO:
                 sql,
                 {
                     "prompt": prompt,
-                    "profile_name": (
-                        self.ORACLE_PROFILE
-                    ),
+                    "profile_name": self.ORACLE_PROFILE,
                 },
             )
 
-            resultado = (
-                cursor.fetchone()
-            )
+            resultado = cursor.fetchone()
 
             if not resultado:
 
                 return (
-                    "⚠️ O Oracle Select AI não retornou "
-                    "nenhum resultado."
+                    "Não consegui obter uma resposta "
+                    "para essa consulta."
                 )
 
             bruto = resultado[0]
@@ -2145,8 +2331,8 @@ PERGUNTA DO USUÁRIO:
             if bruto is None:
 
                 return (
-                    "⚠️ O Oracle Select AI retornou "
-                    "uma resposta vazia."
+                    "Não consegui obter uma resposta "
+                    "para essa consulta."
                 )
 
             if hasattr(
@@ -2158,60 +2344,59 @@ PERGUNTA DO USUÁRIO:
 
             else:
 
-                texto = str(
-                    bruto
-                )
+                texto = str(bruto)
 
             texto = texto.strip()
 
             if not texto:
 
                 return (
-                    "⚠️ O Oracle Select AI retornou "
-                    "uma resposta vazia."
+                    "Não consegui obter uma resposta "
+                    "para essa consulta."
                 )
 
-            dados = (
-                self._tentar_json(
-                    texto
-                )
+            dados = self._tentar_json(
+                texto
             )
 
             if dados is not None:
 
                 return dados
 
-            texto_lower = (
-                texto.lower()
-            )
+            texto_lower = texto.lower()
 
-            if (
-                "no valid response generated"
-                in texto_lower
+            # --------------------------------------------------------
+            # RESPOSTAS QUE NÃO DEVEM SER MOSTRADAS AO USUÁRIO
+            # --------------------------------------------------------
+
+            erros_ia = [
+                "no valid response generated",
+                "ora-20422",
+                "http 422",
+                "request failed with status",
+                "bearer://api.cohere.ai",
+                "try updating messages",
+            ]
+
+            if any(
+                erro in texto_lower
+                for erro in erros_ia
             ):
 
                 return (
-                    "⚠️ **O Oracle Select AI não conseguiu "
-                    "gerar uma consulta válida.**\n\n"
-                    "A pergunta foi direcionada para "
-                    f"`{tabela}`.\n\n"
-                    "Tente deixar a pergunta mais específica."
-                )
-
-            if "ora-20422" in texto_lower:
-
-                return (
-                    "⚠️ **O Oracle Select AI retornou "
-                    "ORA-20422.**\n\n"
-                    f"`{texto}`"
+                    "🤔 Não consegui encontrar uma resposta "
+                    "confiável para essa pergunta.\n\n"
+                    "Tente reformular a consulta ou "
+                    "especificar melhor o que deseja analisar."
                 )
 
             if "max_tokens" in texto_lower:
 
                 return (
-                    "⚠️ **A resposta ultrapassou o limite "
-                    "de tokens.**\n\n"
-                    "Tente solicitar menos resultados."
+                    "A consulta retornou dados demais "
+                    "para serem exibidos de uma vez.\n\n"
+                    "Tente solicitar uma quantidade menor "
+                    "de resultados."
                 )
 
             return texto
@@ -2226,6 +2411,10 @@ PERGUNTA DO USUÁRIO:
                 erro_texto.lower()
             )
 
+            # --------------------------------------------------------
+            # TIMEOUT
+            # --------------------------------------------------------
+
             if (
                 "call timeout"
                 in erro_lower
@@ -2234,10 +2423,14 @@ PERGUNTA DO USUÁRIO:
             ):
 
                 return (
-                    "⏱️ **A consulta ultrapassou o limite "
-                    "de 30 segundos.**\n\n"
+                    "⏱️ A consulta demorou mais do que "
+                    "o esperado.\n\n"
                     "Tente fazer uma consulta mais específica."
                 )
+
+            # --------------------------------------------------------
+            # WALLET
+            # --------------------------------------------------------
 
             if (
                 "wallet"
@@ -2251,14 +2444,46 @@ PERGUNTA DO USUÁRIO:
             ):
 
                 return (
-                    "⚠️ **Não foi possível acessar o Wallet "
-                    "do Oracle.**\n\n"
-                    "Verifique a configuração do Oracle."
+                    "Não foi possível estabelecer conexão "
+                    "com o banco de dados no momento."
                 )
 
+            # --------------------------------------------------------
+            # ERROS DA IA / COHERE / ORA-20422
+            # NÃO MOSTRAR ERRO TÉCNICO
+            # --------------------------------------------------------
+
+            erros_tecnicos = [
+                "ora-20422",
+                "no valid response generated",
+                "http 422",
+                "request failed with status",
+                "api.cohere.ai",
+                "bearer://",
+                "ora-06512",
+                "dbms_cloud_ai",
+            ]
+
+            if any(
+                termo in erro_lower
+                for termo in erros_tecnicos
+            ):
+
+                return (
+                    "🤔 Não consegui gerar uma resposta "
+                    "para essa pergunta.\n\n"
+                    "Tente reformular sua consulta ou "
+                    "deixe o pedido mais específico."
+                )
+
+            # --------------------------------------------------------
+            # FALLBACK
+            # --------------------------------------------------------
+
             return (
-                "⚠️ **Erro ao consultar o Oracle.**\n\n"
-                f"`{erro_texto}`"
+                "Não consegui concluir essa consulta "
+                "neste momento.\n\n"
+                "Tente novamente ou reformule a pergunta."
             )
 
         finally:
@@ -2401,10 +2626,7 @@ PERGUNTA DO USUÁRIO:
         pergunta,
     ):
 
-        texto = (
-            pergunta
-            .strip()
-        )
+        texto = pergunta.strip()
 
         texto = " ".join(
             texto.split()
@@ -2421,7 +2643,7 @@ PERGUNTA DO USUÁRIO:
         return texto
 
     # ================================================================
-    # NOME DA NOVA CONVERSA
+    # NOVA CONVERSA
     # ================================================================
 
     def _gerar_nome_conversa(

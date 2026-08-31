@@ -92,10 +92,10 @@ class DashboardView:
         st.write("")
 
         # =================================================
-        # VITTA IA
+        # BLOCOS INFORMATIVOS
         # =================================================
 
-        self._render_chatbot(
+        self._render_blocos_informativos(
             model,
             uf_atual,
             municipio_atual
@@ -303,34 +303,6 @@ class DashboardView:
         uf,
         municipio
     ):
-
-        # =================================================
-        # TÍTULO DA SEÇÃO
-        # =================================================
-
-        st.html(
-            """
-            <div class="section-heading">
-
-                <div class="section-heading-icon">
-                    📊
-                </div>
-
-                <div>
-
-                    <div class="section-heading-title">
-                        Visão Analítica
-                    </div>
-
-                    <div class="section-heading-subtitle">
-                        Evolução das internações e capacidade da rede hospitalar
-                    </div>
-
-                </div>
-
-            </div>
-            """
-        )
 
         col_esquerda, col_direita = st.columns(
             2,
@@ -715,6 +687,116 @@ class DashboardView:
                 )
 
     # =====================================================
+    # BLOCOS INFORMATIVOS
+    # =====================================================
+
+    def _render_blocos_informativos(
+        self,
+        model,
+        uf,
+        municipio
+    ):
+
+        col_ia, col_relatorios = st.columns(
+            2,
+            gap="medium"
+        )
+
+        # =================================================
+        # VITTA IA
+        # =================================================
+
+        with col_ia:
+
+            self._render_chatbot(
+                model,
+                uf,
+                municipio
+            )
+
+        # =================================================
+        # RELATÓRIOS
+        # =================================================
+
+        with col_relatorios:
+
+            st.html(
+                """
+                <div class="reports-container">
+
+                    <div class="reports-background-glow"></div>
+
+                    <div class="reports-top">
+
+                        <div class="reports-brand">
+
+                            <div class="reports-avatar">
+                                📊
+                            </div>
+
+                            <div>
+
+                                <div class="reports-name">
+                                    Relatórios
+                                </div>
+
+                                <div class="reports-status">
+                                    Análises e documentos
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="reports-badge">
+                            RELATÓRIOS
+                        </div>
+
+                    </div>
+
+                    <div class="reports-body">
+
+                        <div class="reports-message">
+
+                            <div class="reports-message-icon">
+                                📋
+                            </div>
+
+                            <div>
+
+                                <div class="reports-message-title">
+                                    Central de Relatórios
+                                </div>
+
+                                <div class="reports-message-text">
+                                    Consulte relatórios detalhados, análises e informações consolidadas da rede de saúde. Explore indicadores, acompanhe a evolução dos dados, identifique tendências e padrões relevantes e obtenha uma visão integrada do cenário hospitalar. Utilize essas informações para aprofundar suas análises, facilitar a interpretação dos dados e apoiar uma tomada de decisões mais assertiva.
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+                """
+            )
+
+            # =================================================
+            # BOTÃO RELATÓRIOS
+            # =================================================
+
+            if st.button(
+                "📊  Acessar Relatórios",
+                key="dashboard_abrir_relatorios",
+                width="stretch"
+            ):
+
+                st.query_params["page"] = "Relatórios"
+
+                st.rerun()
+
+    # =====================================================
     # CHATBOT VITTA IA
     # =====================================================
 
@@ -726,55 +808,15 @@ class DashboardView:
     ):
 
         # =================================================
-        # TÍTULO
+        # MENSAGEM DA IA
         # =================================================
 
-        st.html(
-            """
-            <div class="section-heading chatbot-section-title">
-
-                <div class="section-heading-icon ai-icon">
-                    ✦
-                </div>
-
-                <div>
-
-                    <div class="section-heading-title">
-                        Vitta IA
-                    </div>
-
-                    <div class="section-heading-subtitle">
-                        Assistente inteligente para análise dos dados hospitalares
-                    </div>
-
-                </div>
-
-            </div>
-            """
+        mensagem = (
+            "Olá! Sou a Vitta IA, sua assistente inteligente para análise "
+            "de dados hospitalares. Estou pronta para ajudar você a interpretar "
+            "informações, identificar indicadores e obter insights sobre a rede "
+            "de saúde."
         )
-
-        try:
-
-            dados_ia = model.get_dados_ia(
-                uf=uf,
-                municipio=municipio
-            )
-
-        except Exception:
-
-            dados_ia = None
-
-        mensagem = ""
-
-        if isinstance(
-            dados_ia,
-            dict
-        ):
-
-            mensagem = dados_ia.get(
-                "mensagem",
-                ""
-            )
 
         # =================================================
         # CONTAINER PRINCIPAL
@@ -831,12 +873,7 @@ class DashboardView:
                             </div>
 
                             <div class="chatbot-message-text">
-                                {
-                                    mensagem
-                                    if mensagem
-                                    else
-                                    "Olá! Sou a Vitta IA. Estou pronta para analisar os indicadores hospitalares e ajudar você a interpretar os dados da rede de saúde."
-                                }
+                                {mensagem}
                             </div>
 
                         </div>
@@ -869,29 +906,13 @@ class DashboardView:
         # AÇÃO DA IA
         # =================================================
 
-        st.html(
-            """
-            <div class="chatbot-action-wrapper">
-
-                <div class="chatbot-action-content">
-
-                    <div class="chatbot-action-text">
-                        Continue sua análise diretamente com a Vitta IA.
-                    </div>
-
-                </div>
-
-            </div>
-            """
-        )
-
         if st.button(
             "✦  Conversar com a Vitta IA",
             key="dashboard_abrir_vitta_ia",
-            use_container_width=True
+            width="stretch"
         ):
 
-            st.session_state["pagina_atual"] = "Vitta IA"
+            st.query_params["page"] = "Assistente IA"
 
             st.rerun()
 
@@ -1013,18 +1034,18 @@ class DashboardView:
                 background:
                     linear-gradient(
                         135deg,
-                        rgba(37,99,235,0.22),
-                        rgba(99,102,241,0.20),
+                        rgba(126,34,206,0.24),
+                        rgba(168,85,247,0.18),
                         rgba(15,23,42,0.96)
                     );
 
                 border:
                     1px solid
-                    rgba(99,102,241,0.22);
+                    rgba(168,85,247,0.22);
 
                 box-shadow:
                     0 12px 40px
-                    rgba(37,99,235,0.12);
+                    rgba(126,34,206,0.12);
 
             }
 
@@ -1035,44 +1056,20 @@ class DashboardView:
 
                 position: absolute;
 
-                width: 240px;
+                width: 220px;
 
-                height: 240px;
+                height: 220px;
 
                 right: -100px;
 
-                top: -130px;
+                top: -120px;
 
                 border-radius: 50%;
 
                 background:
-                    rgba(124,58,237,0.18);
+                    rgba(168,85,247,0.18);
 
                 filter: blur(5px);
-
-            }
-
-
-            .page-header::before {
-
-                content: "";
-
-                position: absolute;
-
-                width: 160px;
-
-                height: 160px;
-
-                left: 25%;
-
-                bottom: -130px;
-
-                border-radius: 50%;
-
-                background:
-                    rgba(37,99,235,0.08);
-
-                filter: blur(12px);
 
             }
 
@@ -1100,13 +1097,13 @@ class DashboardView:
                 background:
                     linear-gradient(
                         135deg,
-                        #2563EB,
-                        #7C3AED
+                        #7C3AED,
+                        #A855F7
                     );
 
                 box-shadow:
                     0 10px 30px
-                    rgba(79,70,229,0.35);
+                    rgba(168,85,247,0.35);
 
             }
 
@@ -1126,7 +1123,7 @@ class DashboardView:
 
             .header-eyebrow {
 
-                color: #818CF8;
+                color: #C084FC;
 
                 font-size: 11px;
 
@@ -1156,11 +1153,11 @@ class DashboardView:
 
             .header-title span {
 
-                color: #A78BFA;
+                color: #A855F7;
 
                 text-shadow:
                     0 0 24px
-                    rgba(167,139,250,0.20);
+                    rgba(168,85,247,0.20);
 
             }
 
@@ -1169,7 +1166,7 @@ class DashboardView:
 
                 margin-top: 8px;
 
-                color: #A5B4FC;
+                color: #C4B5FD;
 
                 font-size: 14px;
 
@@ -1201,7 +1198,7 @@ class DashboardView:
 
             .header-status-dot {
 
-                color: #6366F1;
+                color: #A855F7;
 
                 font-size: 13px;
 
@@ -1209,7 +1206,7 @@ class DashboardView:
 
                 text-shadow:
                     0 0 10px
-                    rgba(99,102,241,0.65);
+                    rgba(168,85,247,0.65);
 
             }
 
@@ -1225,80 +1222,6 @@ class DashboardView:
                 letter-spacing: 1.1px;
 
                 margin-top: 5px;
-
-            }
-
-
-            /* =================================================
-               SEÇÕES
-               ================================================= */
-
-            .section-heading {
-
-                display: flex;
-
-                align-items: center;
-
-                gap: 13px;
-
-                margin:
-                    8px 0 15px 0;
-
-            }
-
-
-            .section-heading-icon {
-
-                width: 38px;
-
-                height: 38px;
-
-                display: flex;
-
-                align-items: center;
-
-                justify-content: center;
-
-                flex-shrink: 0;
-
-                border-radius: 11px;
-
-                background:
-                    linear-gradient(
-                        135deg,
-                        rgba(37,58,235,0.15),
-                        rgba(124,58,237,0.15)
-                    );
-
-                border:
-                    1px solid
-                    rgba(99,102,241,0.15);
-
-                color: #A5B4FC;
-
-                font-size: 19px;
-
-            }
-
-
-            .section-heading-title {
-
-                color: #F8FAFC;
-
-                font-size: 18px;
-
-                font-weight: 750;
-
-            }
-
-
-            .section-heading-subtitle {
-
-                color: #64748B;
-
-                font-size: 11px;
-
-                margin-top: 2px;
 
             }
 
@@ -1348,7 +1271,7 @@ class DashboardView:
 
                 box-shadow:
                     0 16px 40px
-                    rgba(99,102,241,0.15);
+                    rgba(168,85,247,0.15);
 
             }
 
@@ -1407,14 +1330,14 @@ class DashboardView:
             .kpi-card.purple {
 
                 border-top:
-                    3px solid #7C3AED;
+                    3px solid #A855F7;
 
             }
 
 
             .kpi-card.purple .kpi-glow {
 
-                background: #7C3AED;
+                background: #A855F7;
 
             }
 
@@ -1422,14 +1345,14 @@ class DashboardView:
             .kpi-card.indigo {
 
                 border-top:
-                    3px solid #6366F1;
+                    3px solid #7C3AED;
 
             }
 
 
             .kpi-card.indigo .kpi-glow {
 
-                background: #6366F1;
+                background: #7C3AED;
 
             }
 
@@ -1470,7 +1393,7 @@ class DashboardView:
                 color: #C4B5FD;
 
                 background:
-                    rgba(99,102,241,0.10);
+                    rgba(168,85,247,0.10);
 
             }
 
@@ -1556,8 +1479,8 @@ class DashboardView:
                 background:
                     linear-gradient(
                         90deg,
-                        rgba(37,99,235,0.7),
-                        rgba(139,92,246,0.7)
+                        rgba(168,85,247,0.7),
+                        rgba(124,58,237,0.7)
                     );
 
                 opacity: 0.45;
@@ -1611,7 +1534,7 @@ class DashboardView:
 
                 border:
                     1px solid
-                    rgba(99,102,241,0.10);
+                    rgba(168,85,247,0.10);
 
                 border-radius: 16px;
 
@@ -1625,35 +1548,15 @@ class DashboardView:
 
 
             /* =================================================
-               CHATBOT
+               BLOCOS IA / RELATÓRIOS
                ================================================= */
 
-            .chatbot-section-title {
-
-                margin-top: 10px;
-
-            }
-
-
-            .ai-icon {
-
-                background:
-                    linear-gradient(
-                        135deg,
-                        rgba(124,58,237,0.22),
-                        rgba(37,99,235,0.18)
-                    );
-
-                color: #C4B5FD;
-
-            }
-
-
-            .chatbot-container {
+            .chatbot-container,
+            .reports-container {
 
                 position: relative;
 
-                min-height: 470px;
+                min-height: 320px;
 
                 overflow: hidden;
 
@@ -1669,7 +1572,7 @@ class DashboardView:
 
                 border:
                     1px solid
-                    rgba(99,102,241,0.28);
+                    rgba(124,58,237,0.28);
 
                 box-shadow:
                     0 18px 50px
@@ -1678,22 +1581,23 @@ class DashboardView:
             }
 
 
-            .chatbot-background-glow {
+            .chatbot-background-glow,
+            .reports-background-glow {
 
                 position: absolute;
 
-                width: 380px;
+                width: 300px;
 
-                height: 380px;
+                height: 300px;
 
-                right: -150px;
+                right: -130px;
 
-                top: -180px;
+                top: -150px;
 
                 border-radius: 50%;
 
                 background:
-                    rgba(124,58,237,0.13);
+                    rgba(168,85,247,0.13);
 
                 filter: blur(15px);
 
@@ -1704,13 +1608,13 @@ class DashboardView:
 
                 position: absolute;
 
-                width: 240px;
+                width: 200px;
 
-                height: 240px;
+                height: 200px;
 
-                left: -120px;
+                left: -100px;
 
-                bottom: -140px;
+                bottom: -120px;
 
                 border-radius: 50%;
 
@@ -1722,7 +1626,8 @@ class DashboardView:
             }
 
 
-            .chatbot-top {
+            .chatbot-top,
+            .reports-top {
 
                 position: relative;
 
@@ -1735,7 +1640,7 @@ class DashboardView:
                 justify-content: space-between;
 
                 padding:
-                    22px 25px;
+                    20px 23px;
 
                 border-bottom:
                     1px solid
@@ -1744,7 +1649,8 @@ class DashboardView:
             }
 
 
-            .chatbot-brand {
+            .chatbot-brand,
+            .reports-brand {
 
                 display: flex;
 
@@ -1755,11 +1661,12 @@ class DashboardView:
             }
 
 
-            .chatbot-avatar {
+            .chatbot-avatar,
+            .reports-avatar {
 
-                width: 46px;
+                width: 44px;
 
-                height: 46px;
+                height: 44px;
 
                 display: flex;
 
@@ -1767,17 +1674,17 @@ class DashboardView:
 
                 justify-content: center;
 
-                border-radius: 14px;
+                border-radius: 13px;
 
                 color: #FFFFFF;
 
-                font-size: 22px;
+                font-size: 20px;
 
                 background:
                     linear-gradient(
                         135deg,
-                        #6366F1,
-                        #7C3AED
+                        #7C3AED,
+                        #A855F7
                     );
 
                 box-shadow:
@@ -1787,7 +1694,20 @@ class DashboardView:
             }
 
 
-            .chatbot-name {
+            .reports-avatar {
+
+                background:
+                    linear-gradient(
+                        135deg,
+                        #2563EB,
+                        #6366F1
+                    );
+
+            }
+
+
+            .chatbot-name,
+            .reports-name {
 
                 color: #FFFFFF;
 
@@ -1798,7 +1718,8 @@ class DashboardView:
             }
 
 
-            .chatbot-status {
+            .chatbot-status,
+            .reports-status {
 
                 color: #64748B;
 
@@ -1809,14 +1730,8 @@ class DashboardView:
             }
 
 
-            .chatbot-status::first-letter {
-
-                color: #8B5CF6;
-
-            }
-
-
-            .chatbot-badge {
+            .chatbot-badge,
+            .reports-badge {
 
                 padding:
                     6px 11px;
@@ -1841,32 +1756,46 @@ class DashboardView:
             }
 
 
-            .chatbot-body {
+            .reports-badge {
+
+                color: #A5B4FC;
+
+                background:
+                    rgba(37,99,235,0.12);
+
+                border-color:
+                    rgba(99,102,241,0.24);
+
+            }
+
+
+            .chatbot-body,
+            .reports-body {
 
                 position: relative;
 
                 z-index: 2;
 
                 padding:
-                    28px 25px;
+                    25px 23px;
 
-                min-height: 290px;
+                min-height: 190px;
 
             }
 
 
-            .chatbot-message {
+            .chatbot-message,
+            .reports-message {
 
                 display: flex;
 
                 gap: 13px;
 
-                max-width: 850px;
-
             }
 
 
-            .chatbot-message-avatar {
+            .chatbot-message-avatar,
+            .reports-message-icon {
 
                 width: 36px;
 
@@ -1894,10 +1823,23 @@ class DashboardView:
             }
 
 
+            .reports-message-icon {
+
+                color: #A5B4FC;
+
+                background:
+                    rgba(37,99,235,0.12);
+
+                border-color:
+                    rgba(99,102,241,0.20);
+
+            }
+
+
             .chatbot-message-content {
 
                 padding:
-                    14px 17px;
+                    13px 16px;
 
                 border-radius:
                     5px 15px 15px 15px;
@@ -1925,7 +1867,8 @@ class DashboardView:
             }
 
 
-            .chatbot-message-text {
+            .chatbot-message-text,
+            .reports-message-text {
 
                 color: #CBD5E1;
 
@@ -1936,16 +1879,29 @@ class DashboardView:
             }
 
 
+            .reports-message-title {
+
+                color: #A5B4FC;
+
+                font-size: 12px;
+
+                font-weight: 800;
+
+                margin-bottom: 7px;
+
+            }
+
+
             .chatbot-suggestions {
 
                 display: flex;
 
                 flex-wrap: wrap;
 
-                gap: 9px;
+                gap: 8px;
 
                 margin:
-                    22px 0 0 49px;
+                    20px 0 0 49px;
 
             }
 
@@ -1953,7 +1909,7 @@ class DashboardView:
             .chatbot-suggestion {
 
                 padding:
-                    9px 13px;
+                    8px 11px;
 
                 border-radius: 10px;
 
@@ -1966,58 +1922,22 @@ class DashboardView:
                     1px solid
                     rgba(99,102,241,0.15);
 
-                font-size: 10px;
-
-                transition:
-                    all 0.2s ease;
-
-            }
-
-
-            .chatbot-suggestion:hover {
-
-                color: #FFFFFF;
-
-                background:
-                    rgba(99,102,241,0.16);
-
-                border-color:
-                    rgba(139,92,246,0.35);
+                font-size: 9px;
 
             }
 
 
             /* =================================================
-               AÇÃO DA IA
+               AÇÕES
                ================================================= */
 
-            .chatbot-action-wrapper {
+            .chatbot-action-wrapper,
+            .reports-action-wrapper {
 
-                position: relative;
-
-                z-index: 5;
-
-                margin-top: -88px;
+                margin-top: -5px;
 
                 padding:
-                    0 25px 22px 25px;
-
-                pointer-events: none;
-
-            }
-
-
-            .chatbot-action-content {
-
-                display: flex;
-
-                align-items: center;
-
-                justify-content: center;
-
-                min-height: 47px;
-
-                text-align: center;
+                    0 23px 20px 23px;
 
             }
 
@@ -2028,18 +1948,14 @@ class DashboardView:
 
                 font-size: 10px;
 
+                text-align: center;
+
+                margin-bottom: 8px;
+
             }
 
 
-            /* =================================================
-               BOTÃO VITTA IA
-               ================================================= */
-
-            div[data-testid="stButton"] button {
-
-                position: relative;
-
-                z-index: 10;
+            .st-key-dashboard_abrir_vitta_ia button {
 
                 min-height: 42px !important;
 
@@ -2062,13 +1978,10 @@ class DashboardView:
 
                 font-weight: 800 !important;
 
-                transition:
-                    all 0.2s ease !important;
-
             }
 
 
-            div[data-testid="stButton"] button:hover {
+            .st-key-dashboard_abrir_vitta_ia button:hover {
 
                 border-color:
                     rgba(167,139,250,0.85) !important;
@@ -2085,9 +1998,51 @@ class DashboardView:
                 transform:
                     translateY(-1px);
 
-                box-shadow:
-                    0 8px 22px
-                    rgba(124,58,237,0.18);
+            }
+
+
+            .st-key-dashboard_abrir_relatorios button {
+
+                min-height: 42px !important;
+
+                border-radius: 11px !important;
+
+                border:
+                    1px solid
+                    rgba(99,102,241,0.42) !important;
+
+                background:
+                    linear-gradient(
+                        135deg,
+                        rgba(37,99,235,0.18),
+                        rgba(99,102,241,0.16)
+                    ) !important;
+
+                color: #A5B4FC !important;
+
+                font-size: 13px !important;
+
+                font-weight: 800 !important;
+
+            }
+
+
+            .st-key-dashboard_abrir_relatorios button:hover {
+
+                border-color:
+                    rgba(165,180,252,0.85) !important;
+
+                background:
+                    linear-gradient(
+                        135deg,
+                        rgba(37,99,235,0.30),
+                        rgba(99,102,241,0.26)
+                    ) !important;
+
+                color: #FFFFFF !important;
+
+                transform:
+                    translateY(-1px);
 
             }
 
@@ -2115,13 +2070,6 @@ class DashboardView:
                 .header-status {
 
                     display: none;
-
-                }
-
-
-                .chatbot-container {
-
-                    min-height: 500px;
 
                 }
 

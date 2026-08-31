@@ -12,7 +12,7 @@ class HeaderComponent:
         # CSS
         # =========================================================
 
-        st.markdown(
+        st.html(
             """
             <style>
 
@@ -87,7 +87,20 @@ class HeaderComponent:
 
 
             /* =====================================================
-               LOGO
+               PRIMEIRA COLUNA - LOGO
+               ===================================================== */
+
+            .st-key-header_container
+            [data-testid="column"]:first-child {
+
+                align-items: center !important;
+
+                justify-content: flex-start !important;
+            }
+
+
+            /* =====================================================
+               ÁREA DA LOGO
                ===================================================== */
 
             .vitta-header-logo {
@@ -98,19 +111,25 @@ class HeaderComponent:
 
                 gap: 12px;
 
-                width: 100%;
+                width: fit-content;
 
-                height: 58px;
+                height: 62px;
 
                 margin: 0;
 
                 padding: 0;
+
+                box-sizing: border-box;
             }
 
 
+            /* =====================================================
+               IMAGEM DA LOGO
+               ===================================================== */
+
             .vitta-header-logo img {
 
-                height: 70px;
+                height: 62px;
 
                 width: auto;
 
@@ -120,19 +139,89 @@ class HeaderComponent:
 
                 display: block;
 
+                flex-shrink: 0;
+
                 margin: 0;
 
                 padding: 0;
             }
 
 
+            /* =====================================================
+               BLOCO DA MARCA
+               ===================================================== */
+
+            .vitta-header-brand {
+
+                display: flex;
+
+                flex-direction: column;
+
+                justify-content: center;
+
+                align-items: flex-start;
+
+                gap: 6px;
+
+                min-width: 0;
+
+                margin: 0;
+
+                padding: 0;
+
+                height: 100%;
+            }
+
+
+            /* =====================================================
+               NOME DA MARCA
+               ===================================================== */
+
             .vitta-header-logo-text {
+
+                display: block;
 
                 font-size: 25px;
 
                 font-weight: 900;
 
                 font-family: sans-serif;
+
+                letter-spacing: -0.035em;
+
+                line-height: 1;
+
+                white-space: nowrap;
+
+                margin: 0;
+
+                padding: 0;
+
+                filter:
+                    drop-shadow(
+                        0 0 8px
+                        rgba(99, 102, 241, 0.25)
+                    );
+            }
+
+
+            /* =====================================================
+               VITTA
+               ===================================================== */
+
+            .vitta-brand-vitta {
+
+                color: #ffffff;
+
+                font-weight: 900;
+            }
+
+
+            /* =====================================================
+               VISION
+               ===================================================== */
+
+            .vitta-brand-vision {
 
                 background:
                     linear-gradient(
@@ -149,17 +238,141 @@ class HeaderComponent:
 
                 background-clip: text;
 
-                letter-spacing: -0.035em;
+                font-weight: 900;
+            }
 
-                line-height: 1;
+
+            /* =====================================================
+               SUBTÍTULO
+               ===================================================== */
+
+            .vitta-header-subtitle {
+
+                display: block;
+
+                font-size: 11px;
+
+                font-weight: 600;
+
+                font-family: sans-serif;
+
+                letter-spacing: 0.055em;
+
+                line-height: 1.1;
 
                 white-space: nowrap;
 
+                text-transform: none;
+
+                margin: 0;
+
+                padding: 0;
+
                 filter:
                     drop-shadow(
-                        0 0 8px
-                        rgba(99, 102, 241, 0.25)
+                        0 0 5px
+                        rgba(129, 140, 248, 0.18)
                     );
+            }
+
+
+            /* =====================================================
+               "INTELIGÊNCIA QUE"
+               ===================================================== */
+
+            .vitta-subtitle-white {
+
+                color: #ffffff;
+
+                font-weight: 600;
+            }
+
+
+            /* =====================================================
+               "TRANSFORMA A SAÚDE"
+               ===================================================== */
+
+            .vitta-subtitle-gradient {
+
+                background:
+                    linear-gradient(
+                        90deg,
+                        #60a5fa 0%,
+                        #818cf8 48%,
+                        #c084fc 100%
+                    );
+
+                -webkit-background-clip: text;
+
+                -webkit-text-fill-color: transparent;
+
+                background-clip: text;
+
+                font-weight: 700;
+            }
+
+
+            /* =====================================================
+               LOGO CLICÁVEL
+
+               IMPORTANTE:
+               O LINK NÃO OCUPA MAIS A COLUNA INTEIRA.
+               SOMENTE O CONTEÚDO DA LOGO É CLICÁVEL.
+               ===================================================== */
+
+            .vitta-header-link {
+
+                display: flex !important;
+
+                align-items: center !important;
+
+                justify-content: flex-start !important;
+
+                width: fit-content !important;
+
+                height: 62px !important;
+
+                text-decoration: none !important;
+
+                color: inherit !important;
+
+                cursor: pointer !important;
+
+                border: none !important;
+
+                box-shadow: none !important;
+
+                margin: 0 !important;
+
+                padding: 0 !important;
+            }
+
+
+            .vitta-header-link:hover {
+
+                text-decoration: none !important;
+
+                color: inherit !important;
+
+                border: none !important;
+
+                box-shadow: none !important;
+            }
+
+
+            .vitta-header-link:visited {
+
+                text-decoration: none !important;
+
+                color: inherit !important;
+            }
+
+
+            .vitta-header-link:active {
+
+                text-decoration: none !important;
+
+                color: inherit !important;
             }
 
 
@@ -173,11 +386,15 @@ class HeaderComponent:
 
                 align-items: center;
 
-                gap: 11px;
+                gap: 12px;
 
-                width: 100%;
+                width: fit-content;
 
-                height: 58px;
+                height: 62px;
+
+                margin: 0;
+
+                padding: 0;
             }
 
 
@@ -224,11 +441,41 @@ class HeaderComponent:
 
             .vitta-header-logo-fallback-text {
 
+                display: block;
+
                 font-size: 23px;
 
                 font-weight: 800;
 
                 font-family: sans-serif;
+
+                letter-spacing: -0.03em;
+
+                white-space: nowrap;
+
+                margin: 0;
+
+                padding: 0;
+            }
+
+
+            /* =====================================================
+               FALLBACK - VITTA
+               ===================================================== */
+
+            .vitta-fallback-vitta {
+
+                color: #ffffff;
+
+                font-weight: 800;
+            }
+
+
+            /* =====================================================
+               FALLBACK - VISION
+               ===================================================== */
+
+            .vitta-fallback-vision {
 
                 background:
                     linear-gradient(
@@ -243,9 +490,7 @@ class HeaderComponent:
 
                 background-clip: text;
 
-                letter-spacing: -0.03em;
-
-                white-space: nowrap;
+                font-weight: 800;
             }
 
 
@@ -301,7 +546,7 @@ class HeaderComponent:
 
 
             /* =====================================================
-               TEXTO DOS BOTÕES NORMAIS
+               TEXTO DOS BOTÕES
                ===================================================== */
 
             .st-key-header_container button p {
@@ -326,47 +571,46 @@ class HeaderComponent:
 
             .st-key-header_container button:hover {
 
-            background:
-                rgba(255, 255, 255, 0.08) !important;
+                background:
+                    rgba(255, 255, 255, 0.08) !important;
 
-            backdrop-filter: blur(8px) !important;
+                backdrop-filter: blur(8px) !important;
 
-            -webkit-backdrop-filter: blur(8px) !important;
+                -webkit-backdrop-filter: blur(8px) !important;
 
-            border:
-                1px solid
-                rgba(255, 255, 255, 0.15) !important;
+                border:
+                    1px solid
+                    rgba(255, 255, 255, 0.15) !important;
 
-            color: #ffffff !important;
-        }
+                color: #ffffff !important;
+            }
 
 
-        /* =====================================================
-        REMOVER HOVER DE FUNDO DOS ITENS DE NAVEGAÇÃO
-        Eles terão SOMENTE o underline
-        ===================================================== */
+            /* =====================================================
+               REMOVER HOVER DE FUNDO DA NAVEGAÇÃO
+               ===================================================== */
 
-        .st-key-header_dashboard button:hover,
-        .st-key-header_leitos button:hover,
-        .st-key-header_internacoes button:hover,
-        .st-key-header_hospitais button:hover,
-        .st-key-header_relatorios button:hover {
+            .st-key-header_dashboard button:hover,
+            .st-key-header_leitos button:hover,
+            .st-key-header_internacoes button:hover,
+            .st-key-header_hospitais button:hover,
+            .st-key-header_relatorios button:hover {
 
-            background: transparent !important;
+                background: transparent !important;
 
-            border:
-                1px solid transparent !important;
+                border:
+                    1px solid transparent !important;
 
-            box-shadow: none !important;
+                box-shadow: none !important;
 
-            backdrop-filter: none !important;
+                backdrop-filter: none !important;
 
-            -webkit-backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
 
-            transform: none !important;
+                transform: none !important;
 
-            color: #ffffff !important;
-        }
+                color: #ffffff !important;
+            }
 
 
             /* =====================================================
@@ -423,23 +667,15 @@ class HeaderComponent:
                 width: 100% !important;
             }
 
+
             /* =====================================================
-            UNDERLINE DOS ITENS DE NAVEGAÇÃO
-            ===================================================== */
+               UNDERLINE
+               ===================================================== */
 
-            /* Dashboard */
             .st-key-header_dashboard button,
-
-            /* Leitos */
             .st-key-header_leitos button,
-
-            /* Internações */
             .st-key-header_internacoes button,
-
-            /* Hospitais */
             .st-key-header_hospitais button,
-
-            /* Relatórios */
             .st-key-header_relatorios button {
 
                 position: relative !important;
@@ -449,8 +685,8 @@ class HeaderComponent:
 
 
             /* =====================================================
-            TRAÇO DO UNDERLINE
-            ===================================================== */
+               TRAÇO
+               ===================================================== */
 
             .st-key-header_dashboard button::after,
             .st-key-header_leitos button::after,
@@ -463,6 +699,7 @@ class HeaderComponent:
                 position: absolute !important;
 
                 left: 12px !important;
+
                 right: 12px !important;
 
                 bottom: -2px !important;
@@ -481,8 +718,10 @@ class HeaderComponent:
                     ) !important;
 
                 box-shadow:
-                    0 0 8px rgba(59, 130, 246, 0.45),
-                    0 0 12px rgba(147, 51, 234, 0.35) !important;
+                    0 0 8px
+                    rgba(59, 130, 246, 0.45),
+                    0 0 12px
+                    rgba(147, 51, 234, 0.35) !important;
 
                 transform: scaleX(0) !important;
 
@@ -491,14 +730,15 @@ class HeaderComponent:
                 opacity: 0 !important;
 
                 transition:
-                    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                    transform 0.35s
+                    cubic-bezier(0.4, 0, 0.2, 1),
                     opacity 0.20s ease !important;
             }
 
 
             /* =====================================================
-            HOVER
-            ===================================================== */
+               HOVER
+               ===================================================== */
 
             .st-key-header_dashboard button:hover::after,
             .st-key-header_leitos button:hover::after,
@@ -513,9 +753,8 @@ class HeaderComponent:
 
 
             /* =====================================================
-            ITEM ATIVO
-            Mantém o underline visível sem hover
-            ===================================================== */
+               ITEM ATIVO
+               ===================================================== */
 
             .header-active button::after {
 
@@ -528,11 +767,10 @@ class HeaderComponent:
 
 
             /* =====================================================
-            BRILHO EXTRA NO ITEM ATIVO
-            ===================================================== */
+               BRILHO EXTRA ITEM ATIVO
+               ===================================================== */
 
-            .header-active
-            button {
+            .header-active button {
 
                 box-shadow:
                     0 4px 15px
@@ -541,10 +779,7 @@ class HeaderComponent:
 
 
             /* =====================================================
-               =====================================================
                VITTA AI
-               ESTILIZADO PELO KEY REAL DO STREAMLIT
-               =====================================================
                ===================================================== */
 
             .st-key-header_assistente_ia button {
@@ -612,61 +847,9 @@ class HeaderComponent:
                     rgba(124, 58, 237, 0.40) !important;
             }
 
-            /* =====================================================
-            LOGO CLICÁVEL
-            ===================================================== */
-
-            .vitta-header-link {
-
-                display: block;
-
-                width: 100%;
-
-                height: 58px;
-
-                text-decoration: none !important;
-
-                color: inherit !important;
-
-                cursor: pointer;
-
-                border: none !important;
-
-                box-shadow: none !important;
-            }
-
-
-            .vitta-header-link:hover {
-
-                text-decoration: none !important;
-
-                color: inherit !important;
-
-                border: none !important;
-
-                box-shadow: none !important;
-            }
-
-
-            .vitta-header-link:visited {
-
-                text-decoration: none !important;
-
-                color: inherit !important;
-            }
-
-
-            .vitta-header-link:active {
-
-                text-decoration: none !important;
-
-                color: inherit !important;
-            }
-
 
             /* =====================================================
                LOGIN
-               ESTILIZADO PELO KEY REAL DO STREAMLIT
                ===================================================== */
 
             .st-key-header_admin_login button {
@@ -821,6 +1004,14 @@ class HeaderComponent:
                 }
 
 
+                .vitta-header-subtitle {
+
+                    font-size: 9px;
+
+                    letter-spacing: 0.045em;
+                }
+
+
                 .st-key-header_container button {
 
                     padding: 0 9px !important;
@@ -864,6 +1055,14 @@ class HeaderComponent:
                 }
 
 
+                .vitta-header-subtitle {
+
+                    font-size: 8px;
+
+                    letter-spacing: 0.035em;
+                }
+
+
                 .st-key-header_container
                 [data-testid="stHorizontalBlock"] {
 
@@ -872,8 +1071,7 @@ class HeaderComponent:
             }
 
             </style>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
         # =========================================================
@@ -952,9 +1150,9 @@ class HeaderComponent:
 
                         break
 
-                # -------------------------------------------------
+                # =================================================
                 # LOGO ENCONTRADA
-                # -------------------------------------------------
+                # =================================================
 
                 if logo_found:
 
@@ -990,11 +1188,45 @@ class HeaderComponent:
                                         alt="VITTA Vision"
                                     />
 
-                                    <span
-                                        class="vitta-header-logo-text"
-                                    >
-                                        VITTA VISION
-                                    </span>
+                                    <div class="vitta-header-brand">
+
+                                        <span
+                                            class="vitta-header-logo-text"
+                                        >
+
+                                            <span
+                                                class="vitta-brand-vitta"
+                                            >
+                                                VITTΛ
+                                            </span>
+
+                                            <span
+                                                class="vitta-brand-vision"
+                                            >
+                                                VISION
+                                            </span>
+
+                                        </span>
+
+                                        <span
+                                            class="vitta-header-subtitle"
+                                        >
+
+                                            <span
+                                                class="vitta-subtitle-white"
+                                            >
+                                                Inteligência que
+                                            </span>
+
+                                            <span
+                                                class="vitta-subtitle-gradient"
+                                            >
+                                                Transforma a Saúde
+                                            </span>
+
+                                        </span>
+
+                                    </div>
 
                                 </div>
 
@@ -1011,24 +1243,60 @@ class HeaderComponent:
                                 <div
                                     class="vitta-header-logo-icon"
                                 >
+
                                     <div
                                         class="vitta-header-logo-dot"
                                     ></div>
+
                                 </div>
 
-                                <span
-                                    class="vitta-header-logo-fallback-text"
-                                >
-                                    VITTA VISION
-                                </span>
+                                <div class="vitta-header-brand">
+
+                                    <span
+                                        class="vitta-header-logo-fallback-text"
+                                    >
+
+                                        <span
+                                            class="vitta-fallback-vitta"
+                                        >
+                                            VITTA
+                                        </span>
+
+                                        <span
+                                            class="vitta-fallback-vision"
+                                        >
+                                            VISION
+                                        </span>
+
+                                    </span>
+
+                                    <span
+                                        class="vitta-header-subtitle"
+                                    >
+
+                                        <span
+                                            class="vitta-subtitle-white"
+                                        >
+                                            Inteligência que
+                                        </span>
+
+                                        <span
+                                            class="vitta-subtitle-gradient"
+                                        >
+                                            Transforma a Saúde
+                                        </span>
+
+                                    </span>
+
+                                </div>
 
                             </div>
                             """
                         )
 
-                # -------------------------------------------------
+                # =================================================
                 # FALLBACK
-                # -------------------------------------------------
+                # =================================================
 
                 else:
 
@@ -1039,16 +1307,52 @@ class HeaderComponent:
                             <div
                                 class="vitta-header-logo-icon"
                             >
+
                                 <div
                                     class="vitta-header-logo-dot"
                                 ></div>
+
                             </div>
 
-                            <span
-                                class="vitta-header-logo-fallback-text"
-                            >
-                                VITTA VISION
-                            </span>
+                            <div class="vitta-header-brand">
+
+                                <span
+                                    class="vitta-header-logo-fallback-text"
+                                >
+
+                                    <span
+                                        class="vitta-fallback-vitta"
+                                    >
+                                        VITTA
+                                    </span>
+
+                                    <span
+                                        class="vitta-fallback-vision"
+                                    >
+                                        VISION
+                                    </span>
+
+                                </span>
+
+                                <span
+                                    class="vitta-header-subtitle"
+                                >
+
+                                    <span
+                                        class="vitta-subtitle-white"
+                                    >
+                                        Inteligência que
+                                    </span>
+
+                                    <span
+                                        class="vitta-subtitle-gradient"
+                                    >
+                                        Transforma a Saúde
+                                    </span>
+
+                                </span>
+
+                            </div>
 
                         </div>
                         """
@@ -1072,11 +1376,10 @@ class HeaderComponent:
                         else "header-btn"
                     )
 
-                    st.markdown(
+                    st.html(
                         f"""
                         <div class="{wrapper_class}">
-                        """,
-                        unsafe_allow_html=True,
+                        """
                     )
 
                     clicou = st.button(
@@ -1085,11 +1388,10 @@ class HeaderComponent:
                         use_container_width=True,
                     )
 
-                    st.markdown(
+                    st.html(
                         """
                         </div>
-                        """,
-                        unsafe_allow_html=True,
+                        """
                     )
 
                     if clicou:
@@ -1169,9 +1471,9 @@ class HeaderComponent:
                     pagina_atual == "Admin"
                 )
 
-                # -------------------------------------------------
+                # =================================================
                 # ADMIN ATIVO
-                # -------------------------------------------------
+                # =================================================
 
                 if is_ativo_admin:
 
@@ -1179,9 +1481,9 @@ class HeaderComponent:
                         "👤 Entrar"
                     )
 
-                # -------------------------------------------------
+                # =================================================
                 # ADMIN LOGADO
-                # -------------------------------------------------
+                # =================================================
 
                 elif is_admin_logado:
 
@@ -1189,9 +1491,9 @@ class HeaderComponent:
                         "👤 Painel"
                     )
 
-                # -------------------------------------------------
+                # =================================================
                 # LOGIN
-                # -------------------------------------------------
+                # =================================================
 
                 else:
 
